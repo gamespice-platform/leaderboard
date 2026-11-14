@@ -1,36 +1,24 @@
-This is the **leaderboard** asset for TMC's **Dot** collection. It is where a number a player earned goes, and the road from a game server to the TMC backbone.
+# dot-leaderboard
 
-This collection of assets provides modular building blocks for creating games and applications within the TMC ecosystem, ensuring consistency and interoperability across all `dot-*` assets. This includes core functionality, networking, authentication, cloud integration, and more.
+Leaderboards and player statistics for any Godot game, plus the path from a game server to the TMC website's leaderboards.
 
-**These assets are COMPLETELY OPEN SOURCE**. You are free to use, modify, and distribute them under the terms of the MIT license. The only thing not open source is the back-end web infrastructure. So if you opt into using your own authentication backend instead of integrating with TMC, you will need to build and integrate your own back-end infrastructure.
+Part of TMC's **Dot** collection: modular, MIT-licensed building blocks for games on the TMC platform (only the TMC website back end is closed). It was built with Claude Code and its headless suite passes, but little of it has met real players yet, so expect rough edges and please report what you find.
 
-## From Maintainer & WARNING
-This asset, along with all the others, was built initially with **Claude Code** and will continue to be maintained and extended using it. This is because I (`gamemann`) cannot build the entire TMC platform alone (I wish I could lol).
+## What you get
 
-**Please treat this as partially tested.** Every asset has its own headless test suite and those suites pass, but very little of this has been in front of real players yet. Expect rough edges, and please report anything you run into.
+A board orders one number per player within a scope you choose, such as map, track and style. "Fastest time on surf_beginner", "most kills this week" and "highest score" are one thing with different settings.
 
-I intend on reviewing code, testing, and editing documentation regularly. If you're interested in helping out, please let me know!
+- **Boards** with four orderings (`TIME`, `SCORE`, `POINTS`, `PENALTY`) and display that knows a time from a score.
+- **Ranks.** Ties share a rank (1, 2, 2, 4) in every store.
+- **Player statistics:** counters, bests and lowests, and any counter can become a board.
+- **Stores:** in memory, or `DotLeaderboardStoreSql` for SQLite, Postgres and MySQL/MariaDB through [dot-sql](https://github.com/modcommunity/dot-sql).
+- **A reporter** that batches submissions to the TMC backbone and keeps its queue through an outage.
 
-## Leaderboards and Player Statistics
-**Leaderboards and player statistics for any Godot game**, and the road from a game server to the TMC backbone.
+## Install
 
-A board is an ordering over one number per player, scoped by string keys, so "fastest time on surf_beginner, main track, normal style", "most kills this week" and "highest arena score" are one thing with three configurations.
+Copy `addons/dot_leaderboard/` and [dot-core](https://github.com/modcommunity/dot-core)'s `addons/dot_core/` into your project and enable dot-leaderboard in **Project > Project Settings > Plugins**. dot-auth, dot-timer, dot-server and dot-sql are optional and never named in the source.
 
-## What it gives you
-
-- **Boards** with four orderings (`TIME`, `SCORE`, `POINTS`, `PENALTY`), a scope of your choosing, and rendering that knows a time from a score.
-- **Ranks you can show**: materialised on write in memory, because "am I first" is asked far more often than a board is written to, and counted over an index in SQL, because rewriting every rank on every submission is a write per player. A tie shares a rank (1, 2, 2, 4) in both.
-- **Per-player statistics**: counters, bests and lowests, with a bridge that turns any counter into a board.
-- **A store interface** with an in-memory implementation and a SQL one, `DotLeaderboardStoreSql`, that speaks SQLite, Postgres and MySQL/MariaDB through [dot-sql](https://github.com/modcommunity/dot-sql).
-- **A reporter** that batches submissions to the backbone, keeps its queue through an outage, and is bounded so a backbone down for a day cannot exhaust the server.
-
-## Installing
-
-Copy `addons/dot_leaderboard/` and [`dot-core`](https://github.com/modcommunity/dot-core)'s `addons/dot_core/` into your project, and enable dot-leaderboard in *Project → Project Settings → Plugins*.
-
-[dot-auth](https://github.com/modcommunity/dot-auth), [dot-timer](https://github.com/modcommunity/dot-timer) and dot-server are optional and none is named in the source.
-
-## Five minutes
+## Use
 
 ```gdscript
 var boards := DotLeaderboardManager.new()
@@ -54,21 +42,19 @@ for entry in page.value:
     print("%d. %s %s" % [entry.rank, entry.player_name, fastest.format_value(entry.value)])
 ```
 
-## Statistics
+### Statistics
 
 ```gdscript
 var session := DotStatSet.new()
 session.add(&"jumps", stats.jumps)
-session.add(&"distance", metres)
 session.set_best(&"top_speed", stats.max_speed)
-
 await boards.add_stats(player_id, session)
 
-# and any counter can become a board
+# any counter can become a board
 await boards.publish_stat(&"most_jumps", {}, player_id, player_name, &"jumps")
 ```
 
-## In a database
+### A database
 
 ```gdscript
 var store := DotLeaderboardStoreSql.new(driver)   # any dot-sql driver
@@ -79,38 +65,36 @@ await boards.submit_async(&"fastest", scope, player_id, player_name, run.time())
 var page := await boards.page_async(&"fastest", scope)
 ```
 
-The store reaches its driver duck-typed, so dot-sql is only needed by the project that uses it; dot-leaderboard parses without it. Table names are configurable (`entries_table`, `stats_table`) and default to `dot_leaderboard_entries` and `dot_leaderboard_stats`. Counters are added by the database in one statement, so two servers sharing it cannot lose each other's kills.
+Use the `_async` forms (`submit_async`, `page_async`, `entry_for_async`) with a database store. The plain forms refuse a store that has to wait. `add_stats`, `stats_for` and `publish_stat` are always awaited. Table names are the `entries_table` and `stats_table` settings (defaults `dot_leaderboard_entries` and `dot_leaderboard_stats`). Counters are added inside the database, so two servers sharing it do not lose each other's updates.
 
-**Use the `_async` forms with it.** `submit`, `page` and `entry_for` are synchronous, because games call them without `await`, and they refuse a store that has to wait for a database rather than failing half-way; `submit_async`, `page_async` and `entry_for_async` work with every store. `add_stats`, `stats_for` and `publish_stat` are already awaited.
-
-## Reporting to the site
+### Reporting to the website
 
 ```gdscript
 boards.report_to_backbone = true
 boards.reporter.client = backbone_client   # dot-auth's DotBackboneClient
 ```
 
-Needs the `LEADERBOARD_WRITE` scope on a server- or app-scoped integration. Nothing is sent per event: entries are queued and flushed in batches, the queue survives an outage, and it is bounded.
+This needs the `LEADERBOARD_WRITE` scope on a server or app integration. Entries are queued and sent in batches, and the queue survives an outage.
 
-## Documentation
+## Board definitions file
 
-[`docs/`](docs/README.md) has the design reasoning: why boards and statistics are different problems, why the manager sorts and the store does not, why there are two forms of `submit`, and the bugs the self-test found.
+`tools/export_site_defs.gd` writes your boards as the website's `dot-leaderboard-defs` JSON, for the dashboard import or a deploy. Run it from the game project.
 
-## The leaderboard definitions file
+| Option | Meaning |
+| --- | --- |
+| `--source` | Script with the static method that returns an array of `DotLeaderboardDef`. |
+| `--method` | The method name. |
+| `--out` | Output file (default `deployment/leaderboard-defs.json`). |
+| `--game` | Pin the site app id (unset by default). |
+| `--check` | Exit 1 if the file is stale. |
 
-A game's boards can be written as the site's `dot-leaderboard-defs` JSON, for the dashboard import or a deploy. Run `tools/export_site_defs.gd` from the game project with the static method that returns an array of `DotLeaderboardDef`; it takes `--source`, `--method`, `--out` (default `deployment/leaderboard-defs.json`), `--game` and `--check`.
+A board is identified by `key` plus `scope`. Importing merges, and boards the file does not mention are kept with their entries.
 
-`--check` exits 1 when the file is stale; `--game <id>` pins the site app id (left out by default). The file is `DotLeaderboardDef.to_site_defs()`:
+## More
 
-```json
-{"format": "dot-leaderboard-defs", "version": 1, "boards": [
-  {"key": "fastest", "scope": {"map": "surf_beginner"}, "name": "Fastest", "description": "",
-   "kind": "TIME", "decimals": 3, "unit": "", "visible": true}]}
-```
+[docs/](docs/README.md) explains the design choices.
 
-`kind` is `TIME`, `SCORE`, `POINTS` or `PENALTY`. A board is identified by `key` plus `scope`; importing merges, and boards the file does not mention, with their entries, are kept.
-
-## Validating
+## Test
 
 ```bash
 godot --headless --path . --import
