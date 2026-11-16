@@ -31,4 +31,4 @@ When those call sites await, the plain forms can become the awaited ones.
 
 ## Testing
 
-The selftest's last section drives the SQL store with dot-sql's recording driver: which statements, in which order, bound how, mapped back how, what a failure does, and that a newer schema is refused. It cannot say whether the SQL is valid; `examples/leaderboard_sql_live.tscn` is what does, through dot-sql's gateway, on SQLite always and on Postgres and MySQL/MariaDB when `DOT_SQL_PG_DSN` / `DOT_SQL_MYSQL_DSN` are set.
+The selftest's last section drives the SQL store with dot-sql's recording driver: which statements, in which order, bound how, mapped back how, what a failure does, and that a newer schema is refused. It cannot say whether the SQL is valid; `examples/leaderboard_sql_live.tscn` is what does, through dot-sql's gateway, on SQLite always and on Postgres and MySQL/MariaDB when `GS_SQL_PG_DSN` / `GS_SQL_MYSQL_DSN` are set.
