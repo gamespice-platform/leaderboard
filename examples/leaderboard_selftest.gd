@@ -619,7 +619,7 @@ func _test_boards_config() -> void:
 	_check(config.env_prefix() == "G2G_BOARDS_", "environment prefix is upper-case game plus _BOARDS_", config.env_prefix())
 	_check(config.cli_prefix() == "--g2g_boards_", "command-line prefix uses underscores", config.cli_prefix())
 	_check(DotBoardsConfig.for_game("hungry", "-").cli_prefix() == "--hungry-boards-", "a hyphen separator is honoured")
-	_check(DotBoardsConfig.json_path_for("arena") == "user://arena_boards.json", "the file is user://<game>_boards.json")
+	_check(DotBoardsConfig.json_path_for("fc") == "user://fc_boards.json", "the file is user://<game>_boards.json")
 	_check(config.backend == "memory" and config.validate().ok, "the default is memory and valid")
 
 	config.apply_dictionary({"backend": "backbone"})

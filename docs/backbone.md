@@ -38,4 +38,4 @@ The reporter only writes. `DotLeaderboardStoreBackbone` is a store whose boards 
 
 ## Choosing the store: `DotBoardsConfig`
 
-`DotBoardsConfig.for_game("arena")` is the one config every game's server uses to pick `memory` or `backbone`: `ARENA_BOARDS_BACKEND`, `--arena_boards_backend` (`for_game("hungry", "-")` gives `--hungry-boards-backend`), and `DotBoardsConfig.json_path_for("arena")` for the file. Call `load_layered(path)` and assign `boards.backend = config.backend`; do not copy the class into a game.
+`DotBoardsConfig.for_game("fc")` is the one config every game's server uses to pick `memory` or `backbone`: `FC_BOARDS_BACKEND`, `--fc_boards_backend` (`for_game("hungry", "-")` gives `--hungry-boards-backend`), and `DotBoardsConfig.json_path_for("fc")` for the file. Call `load_layered(path)` and assign `boards.backend = config.backend`; do not copy the class into a game.

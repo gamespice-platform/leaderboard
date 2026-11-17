@@ -13,8 +13,8 @@ var _game: String = ""
 var _cli_separator: String = "_"
 
 
-## A config for [param game] (e.g. "arena"). [param cli_separator] is the character between the
-## words of the command-line flag; "_" gives `--arena_boards_backend`.
+## A config for [param game] (e.g. "fc"). [param cli_separator] is the character between the
+## words of the command-line flag; "_" gives `--fc_boards_backend`.
 static func for_game(game: String, cli_separator: String = "_") -> DotBoardsConfig:
 	var config := DotBoardsConfig.new()
 	config._game = game
