@@ -615,9 +615,9 @@ func _test_publish_is_opt_in() -> void:
 
 func _test_boards_config() -> void:
 	_section("the boards config takes its names from the game")
-	var config := DotBoardsConfig.for_game("g2g")
-	_check(config.env_prefix() == "G2G_BOARDS_", "environment prefix is upper-case game plus _BOARDS_", config.env_prefix())
-	_check(config.cli_prefix() == "--g2g_boards_", "command-line prefix uses underscores", config.cli_prefix())
+	var config := DotBoardsConfig.for_game("airdrift")
+	_check(config.env_prefix() == "AIRDRIFT_BOARDS_", "environment prefix is upper-case game plus _BOARDS_", config.env_prefix())
+	_check(config.cli_prefix() == "--airdrift_boards_", "command-line prefix uses underscores", config.cli_prefix())
 	_check(DotBoardsConfig.for_game("hungry", "-").cli_prefix() == "--hungry-boards-", "a hyphen separator is honoured")
 	_check(DotBoardsConfig.json_path_for("fc") == "user://fc_boards.json", "the file is user://<game>_boards.json")
 	_check(config.backend == "memory" and config.validate().ok, "the default is memory and valid")
