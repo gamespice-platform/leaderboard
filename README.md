@@ -1,4 +1,4 @@
-[![Leaderboard - GameSpice addon](docs/banner.png)](https://moddingcommunity.com/a/217-dot-leaderboard)
+[![Leaderboard - GameSpice addon](docs/banner.png)](https://moddingcommunity.com/a/23-gs-leaderboard)
 
 Leaderboards and player statistics for any Godot game, plus the path from a game server to the TMC website's leaderboards.
 
