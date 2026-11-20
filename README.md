@@ -1,3 +1,5 @@
+[![dot-leaderboard - GameSpice addon](docs/banner.png)](https://moddingcommunity.com/a/217-dot-leaderboard)
+
 Leaderboards and player statistics for any Godot game, plus the path from a game server to the TMC website's leaderboards.
 
 Part of the [**Gamespice**](https://gamespice.net) collection: modular, MIT-licensed building blocks for games on the Gamespice platform (only the TMC website back end is closed). It was built with Claude Code and its headless suite passes, but little of it has met real players yet, so expect rough edges and please report what you find.
