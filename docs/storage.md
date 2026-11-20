@@ -2,12 +2,12 @@
 
 `DotLeaderboardStore` and its two implementations, and why the manager has `_async` forms.
 
-## SQL storage, through dot-sql
+## SQL storage, through GameSpice SQL
 
-`DotLeaderboardStoreSql` holds its driver **untyped** and asks it for `query`, `execute`, `batch`, `upsert_sql`, `dialect` and `migrate`, so no file in the addon names a dot-sql class and the addon parses in a project that has not installed it: the same bargain dot-moderation's SQL store makes. dot-sql is linked into `addons/` (gitignored) only for the suites. The tables are `DotLeaderboardSqlSchema`'s plain-dictionary specs, which the driver renders per dialect, so MySQL's refusal to index TEXT and its missing `CREATE INDEX IF NOT EXISTS` are dot-sql's problem rather than another copy here. A database written by a newer build is refused at `open()`, by dot-sql's migrator, rather than read with columns that changed meaning.
+`DotLeaderboardStoreSql` holds its driver **untyped** and asks it for `query`, `execute`, `batch`, `upsert_sql`, `dialect` and `migrate`, so no file in the addon names a GameSpice SQL class and the addon parses in a project that has not installed it: the same bargain GameSpice Moderation's SQL store makes. GameSpice SQL is linked into `addons/` (gitignored) only for the suites. The tables are `DotLeaderboardSqlSchema`'s plain-dictionary specs, which the driver renders per dialect, so MySQL's refusal to index TEXT and its missing `CREATE INDEX IF NOT EXISTS` are GameSpice SQL's problem rather than another copy here. A database written by a newer build is refused at `open()`, by GameSpice SQL's migrator, rather than read with columns that changed meaning.
 
 - **`board_key` is the whole address** (`DotLeaderboardDef.key()`), not an id and a scope in columns, for the reason the scope is string keys at all.
-- **No column is `value`, `rank` or `key`.** `rank` and `key` are reserved on MySQL and refused by dot-sql; the value is `score`, a counter is `amount`, a computed rank comes back as `place`.
+- **No column is `value`, `rank` or `key`.** `rank` and `key` are reserved on MySQL and refused by GameSpice SQL; the value is `score`, a counter is `amount`, a computed rank comes back as `place`.
 - **Counters are added by the database**, `amount = amount + excluded.amount` (MySQL: `amount + VALUES(amount)`), the one statement spelled per dialect. A read, an add and a write from two servers at once lose one of the two kills; the arithmetic belongs where the row lock is.
 - **`put()` is an unconditional upsert** and returns the previous entry. Whether a value is an improvement is still the manager's call, because the store still has no ordering to judge by.
 
@@ -31,4 +31,4 @@ When those call sites await, the plain forms can become the awaited ones.
 
 ## Testing
 
-The selftest's last section drives the SQL store with dot-sql's recording driver: which statements, in which order, bound how, mapped back how, what a failure does, and that a newer schema is refused. It cannot say whether the SQL is valid; `examples/leaderboard_sql_live.tscn` is what does, through dot-sql's gateway, on SQLite always and on Postgres and MySQL/MariaDB when `GS_SQL_PG_DSN` / `GS_SQL_MYSQL_DSN` are set.
+The selftest's last section drives the SQL store with GameSpice SQL's recording driver: which statements, in which order, bound how, mapped back how, what a failure does, and that a newer schema is refused. It cannot say whether the SQL is valid; `examples/leaderboard_sql_live.tscn` is what does, through GameSpice SQL's gateway, on SQLite always and on Postgres and MySQL/MariaDB when `GS_SQL_PG_DSN` / `GS_SQL_MYSQL_DSN` are set.

@@ -11,12 +11,12 @@ A board orders one number per player within a scope you choose, such as map, tra
 - **Boards** with four orderings (`TIME`, `SCORE`, `POINTS`, `PENALTY`) and display that knows a time from a score.
 - **Ranks.** Ties share a rank (1, 2, 2, 4) in every store.
 - **Player statistics:** counters, bests and lowests, and any counter can become a board.
-- **Stores:** in memory, or `DotLeaderboardStoreSql` for SQLite, Postgres and MySQL/MariaDB through [dot-sql](https://github.com/gamespice-platform/sql).
+- **Stores:** in memory, or `DotLeaderboardStoreSql` for SQLite, Postgres and MySQL/MariaDB through [GameSpice SQL](https://github.com/gamespice-platform/sql).
 - **A reporter** that batches submissions to the TMC backbone and keeps its queue through an outage.
 
 ## Install
 
-Copy `addons/dot_leaderboard/` and [dot-core](https://github.com/gamespice-platform/core)'s `addons/dot_core/` into your project and enable dot-leaderboard in **Project > Project Settings > Plugins**. dot-auth, dot-timer, dot-server and dot-sql are optional and never named in the source.
+Copy `addons/dot_leaderboard/` and [GameSpice Core](https://github.com/gamespice-platform/core)'s `addons/dot_core/` into your project and enable dot-leaderboard in **Project > Project Settings > Plugins**. dot-auth, dot-timer, dot-server and dot-sql are optional and never named in the source.
 
 ## Use
 

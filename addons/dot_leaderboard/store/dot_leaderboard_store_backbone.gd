@@ -17,7 +17,7 @@ const SCOPE_READ := "LEADERBOARD_READ"
 const MAX_PAGE := 100
 
 ## Anything with `post_integration(path, body)` and `get_integration(path, query)`:
-## dot-auth's `DotBackboneClient`. Assigned, never named, so dot-auth stays optional.
+## GameSpice Auth's `DotBackboneClient`. Assigned, never named, so GameSpice Auth stays optional.
 var client: Object = null
 
 ## Boards already declared this run, so a submit does not define first every time.

@@ -150,9 +150,9 @@ func format_value(value: float) -> String:
 	return text if unit == "" else "%s %s" % [text, unit]
 
 
-## A time as [code]m:ss.mmm[/code], the same rendering dot-timer uses.
+## A time as [code]m:ss.mmm[/code], the same rendering GameSpice Timer uses.
 ##
-## Duplicated rather than imported, because dot-timer is optional here and naming the
+## Duplicated rather than imported, because GameSpice Timer is optional here and naming the
 ## class would make this addon fail to parse without it. The duplication is eight
 ## lines and the alternative is a hard dependency between two things that are
 ## otherwise independent.

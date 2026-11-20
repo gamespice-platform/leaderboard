@@ -57,7 +57,7 @@ signal stats_changed(player_id: StringName, totals: DotStatSet)
 @export_group("Backend")
 
 ## Where boards live when [member store] is not assigned: this process (default) or the TMC
-## backbone through [member backbone_client] or the registered dot-auth client.
+## backbone through [member backbone_client] or the registered GameSpice Auth client.
 @export_enum("memory", "backbone") var backend: String = "memory"
 
 ## The client for the "backbone" backend: anything with `post_integration` and
@@ -67,7 +67,7 @@ var backbone_client: Object = null
 ## Where entries live. A store that suspends must be opened before it is used here.
 var store: DotLeaderboardStore = null
 
-## Sends published entries to the backbone. Assign its client from dot-auth.
+## Sends published entries to the backbone. Assign its client from GameSpice Auth.
 var reporter := DotLeaderboardReporter.new()
 
 ## Board templates by id.

@@ -2,7 +2,7 @@
 class_name DotLeaderboardStoreSql
 extends DotLeaderboardStore
 
-## Boards and statistics in real tables, in whichever SQL a dot-sql driver speaks.
+## Boards and statistics in real tables, in whichever SQL a GameSpice SQL driver speaks.
 ##
 ## [codeblock]
 ## var store := DotLeaderboardStoreSql.new(DotSqlDriverSqlite.new("user://boards.db"))
@@ -12,8 +12,8 @@ extends DotLeaderboardStore
 ## [/codeblock]
 ##
 ## [b]The driver is duck-typed[/b] — held untyped and asked for `query`, `execute`,
-## `batch`, `upsert_sql`, `dialect` and `migrate` — so dot-leaderboard does not depend on
-## dot-sql and parses in a project without it. The tables are
+## `batch`, `upsert_sql`, `dialect` and `migrate` — so GameSpice Leaderboard does not depend on
+## GameSpice SQL and parses in a project without it. The tables are
 ## [DotLeaderboardSqlSchema]'s specs, rendered by the driver for its own dialect.
 ##
 ## [b]Every method suspends[/b], because every one is a round trip. So this store reports
@@ -31,7 +31,7 @@ extends DotLeaderboardStore
 
 const CHANNEL := "leaderboard"
 
-## Where statements go: a dot-sql driver, or anything shaped like one.
+## Where statements go: a GameSpice SQL driver, or anything shaped like one.
 var driver = null
 
 ## Table names, in case an operator already owns these or runs two games in one database.

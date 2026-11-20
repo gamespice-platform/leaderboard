@@ -4,26 +4,26 @@ extends RefCounted
 
 ## The two leaderboard tables, their statements and their row mapping, in one place.
 ##
-## [b]The tables are plain data, rendered by dot-sql.[/b] [method entries_spec] and
-## [method stats_spec] are [Dictionary] specs a dot-sql driver turns into DDL for its own
+## [b]The tables are plain data, rendered by GameSpice SQL.[/b] [method entries_spec] and
+## [method stats_spec] are [Dictionary] specs a GameSpice SQL driver turns into DDL for its own
 ## dialect, which is where MySQL's refusal to index TEXT and its missing
 ## [code]CREATE INDEX IF NOT EXISTS[/code] are handled once for every addon. This file names
-## no dot-sql class, so dot-leaderboard still parses in a project without it.
+## no GameSpice SQL class, so GameSpice Leaderboard still parses in a project without it.
 ##
-## [b]Placeholders are [code]?[/code] in every dialect[/b] — dot-sql's contract. Identifiers
+## [b]Placeholders are [code]?[/code] in every dialect[/b] — GameSpice SQL's contract. Identifiers
 ## (the table names) are the only thing ever spliced in, and they come from code or an
 ## operator's config, are checked by the driver's schema validation on [code]open()[/code],
 ## and are never a value a player chose.
 ##
 ## [b]No column is called `value`, `rank` or `key`.[/b] `rank` and `key` are reserved on
-## MySQL and refused by dot-sql; `value` is not reserved anywhere yet but is one SQL
+## MySQL and refused by GameSpice SQL; `value` is not reserved anywhere yet but is one SQL
 ## standard revision away from it. So a board value is `score`, a counter is `amount`, and
 ## a computed rank comes back as `place`.
 
 const DEFAULT_ENTRIES_TABLE := "dot_leaderboard_entries"
 const DEFAULT_STATS_TABLE := "dot_leaderboard_stats"
 
-## The component the schema version is recorded under in dot-sql's migration table,
+## The component the schema version is recorded under in GameSpice SQL's migration table,
 ## suffixed with the entries table so two stores in one database keep separate versions.
 ## Bumped by adding a step to [method migration_steps], never by editing one.
 const MIGRATION_COMPONENT := "dot_leaderboard"
@@ -76,7 +76,7 @@ static func stats_spec(table: String = DEFAULT_STATS_TABLE) -> Dictionary:
 	}
 
 
-## Every schema change, in order, for dot-sql's migrator. Step N brings version N to N+1.
+## Every schema change, in order, for GameSpice SQL's migrator. Step N brings version N to N+1.
 static func migration_steps(
 	entries: String = DEFAULT_ENTRIES_TABLE, stats: String = DEFAULT_STATS_TABLE
 ) -> Array:
@@ -136,8 +136,8 @@ static func select_stats(table: String) -> String:
 ## database add kills for one player at the same moment; a read, an add and a write lose one
 ## of the two. The arithmetic belongs where the row lock is. It is the one statement in this
 ## addon spelled per dialect, because `ON CONFLICT … DO UPDATE` and
-## `ON DUPLICATE KEY UPDATE` are two grammars and dot-sql's upsert only replaces. The
-## dialect is dot-sql's frozen integer: 2 is MySQL.
+## `ON DUPLICATE KEY UPDATE` are two grammars and GameSpice SQL's upsert only replaces. The
+## dialect is GameSpice SQL's frozen integer: 2 is MySQL.
 static func add_stat(table: String, dialect: int) -> String:
 	var head := "INSERT INTO %s (player_id, stat_id, amount) VALUES (?, ?, ?)" % table
 	if dialect == 2:
@@ -159,7 +159,7 @@ static func entry_to_row(entry: DotLeaderboardEntry) -> Array:
 	]
 
 
-## A row back into an entry. A [Dictionary] keyed by column name, which is what a dot-sql
+## A row back into an entry. A [Dictionary] keyed by column name, which is what a GameSpice SQL
 ## driver returns; null for anything else.
 ##
 ## Numbers may arrive as floats (the gateway speaks JSON, which has one number type) or as
@@ -209,7 +209,7 @@ static func _select_ranked(table: String, lower_is_better: bool) -> String:
 	)
 
 
-## A dialect's name, for logs and [code]describe()[/code]. The integers are dot-sql's.
+## A dialect's name, for logs and [code]describe()[/code]. The integers are GameSpice SQL's.
 static func dialect_name(dialect: int) -> String:
 	match dialect:
 		0: return "sqlite"

@@ -3,11 +3,11 @@ extends RefCounted
 
 ## Sends entries and statistics to the TMC backbone, in batches, without losing them.
 ##
-## [b]dot-auth is not a dependency and [code]DotBackboneClient[/code] is not named.[/b]
+## [b]GameSpice Auth is not a dependency and [code]DotBackboneClient[/code] is not named.[/b]
 ## The family rule — a script that mentions an absent [code]class_name[/code] fails to
 ## parse. The client is assigned as an [Object] and its
 ## [code]post_integration(path, body)[/code] is called by name, which is the generic
-## hook dot-auth already exposes for exactly this: it stamps [code]ts[/code] and
+## hook GameSpice Auth already exposes for exactly this: it stamps [code]ts[/code] and
 ## [code]nonce[/code], adds the bearer header, and rate-limits locally. Everything
 ## about authenticating to the backbone therefore lives in one place and this class
 ## does not know the token exists.

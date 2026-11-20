@@ -4,7 +4,7 @@
 
 ## The client is anything with `post_integration`
 
-`DotLeaderboardReporter` calls `post_integration(path, body)` on an object it is handed. That method is the generic hook dot-auth's `DotBackboneClient` already exposes: it stamps `ts` (Unix **seconds**) and a `nonce`, adds the bearer header, and rate-limits locally. So everything about authenticating to the backbone stays in one place, this class does not know a token exists, and **dot-auth is not a dependency**: naming `DotBackboneClient` would make this addon fail to parse without it.
+`DotLeaderboardReporter` calls `post_integration(path, body)` on an object it is handed. That method is the generic hook GameSpice Auth's `DotBackboneClient` already exposes: it stamps `ts` (Unix **seconds**) and a `nonce`, adds the bearer header, and rate-limits locally. So everything about authenticating to the backbone stays in one place, this class does not know a token exists, and **GameSpice Auth is not a dependency**: naming `DotBackboneClient` would make this addon fail to parse without it.
 
 ## Three properties, each a failure avoided
 

@@ -1,7 +1,7 @@
 @tool
 extends EditorPlugin
 
-## Editor entry point for dot-leaderboard. Registers inspector types only.
+## Editor entry point for GameSpice Leaderboard. Registers inspector types only.
 ##
 ## No autoloads. A server that hosts two game modes in one process holds two sets of
 ## boards, and a test holds one per case.

@@ -455,7 +455,7 @@ func _test_publish_stat() -> void:
 
 # --- Reporting -------------------------------------------------------------
 
-## A stand-in for dot-auth's DotBackboneClient, which this addon never names.
+## A stand-in for GameSpice Auth's DotBackboneClient, which this addon never names.
 class FakeBackbone extends RefCounted:
 	var calls: Array[Dictionary] = []
 	var fail: bool = false
