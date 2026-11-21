@@ -1,5 +1,5 @@
-class_name DotLeaderboardStoreBackbone
-extends DotLeaderboardStore
+class_name GSLeaderboardStoreBackbone
+extends GSLeaderboardStore
 
 ## Boards that live on the TMC backbone, read and written through its
 ## `/api/integration/v1/leaderboard/*` endpoints.
@@ -17,15 +17,15 @@ const SCOPE_READ := "LEADERBOARD_READ"
 const MAX_PAGE := 100
 
 ## Anything with `post_integration(path, body)` and `get_integration(path, query)`:
-## GameSpice Auth's `DotBackboneClient`. Assigned, never named, so GameSpice Auth stays optional.
+## GameSpice Auth's `GSBackboneClient`. Assigned, never named, so GameSpice Auth stays optional.
 var client: Object = null
 
 ## Boards already declared this run, so a submit does not define first every time.
 var _declared: Dictionary = {}
 
 
-static func with_client(p_client: Object) -> DotLeaderboardStoreBackbone:
-	var store := DotLeaderboardStoreBackbone.new()
+static func with_client(p_client: Object) -> GSLeaderboardStoreBackbone:
+	var store := GSLeaderboardStoreBackbone.new()
 	store.client = p_client
 	return store
 
@@ -45,17 +45,17 @@ func is_remote() -> bool:
 
 
 ## Declares a board once; the site refuses entries for a board it has not been told about.
-func declare(board: DotLeaderboardDef) -> DotResult:
+func declare(board: GSLeaderboardDef) -> GSResult:
 	var key := board.key()
 	if _declared.has(key):
-		return DotResult.success(false)
+		return GSResult.success(false)
 
 	var unavailable := _need_client()
 	if unavailable != null:
 		return unavailable
 
 	var res: Variant = await client.call(
-		"post_integration", DEFINE_PATH, {"boards": [DotLeaderboardReporter.wire_definition(board)]}
+		"post_integration", DEFINE_PATH, {"boards": [GSLeaderboardReporter.wire_definition(board)]}
 	)
 	var checked := _checked(res)
 	if checked.ok:
@@ -64,9 +64,9 @@ func declare(board: DotLeaderboardDef) -> DotResult:
 
 
 ## Files an entry, overwriting: the manager already judged that it beats the held one.
-func put(entry: DotLeaderboardEntry) -> DotResult:
+func put(entry: GSLeaderboardEntry) -> GSResult:
 	if entry == null or entry.board_key == "":
-		return DotResult.fail(DotError.CODE_INVALID, "An entry needs a board key.")
+		return GSResult.fail(GSError.CODE_INVALID, "An entry needs a board key.")
 
 	var unavailable := _need_client()
 	if unavailable != null:
@@ -93,54 +93,54 @@ func put(entry: DotLeaderboardEntry) -> DotResult:
 
 	var refused: Variant = (checked.value as Dictionary).get("refused", [])
 	if refused is Array and not (refused as Array).is_empty():
-		return DotResult.fail(
-			DotError.CODE_INVALID, "The backbone refused the entry.", str((refused as Array)[0])
+		return GSResult.fail(
+			GSError.CODE_INVALID, "The backbone refused the entry.", str((refused as Array)[0])
 		)
 
 	# The previous entry is the manager's own read; the site does not return one.
-	return DotResult.success(null)
+	return GSResult.success(null)
 
 
-## A page of a board, best first, as `Array[DotLeaderboardEntry]` with ranks set.
-func page(board: DotLeaderboardDef, offset: int = 0, limit: int = 25) -> DotResult:
+## A page of a board, best first, as `Array[GSLeaderboardEntry]` with ranks set.
+func page(board: GSLeaderboardDef, offset: int = 0, limit: int = 25) -> GSResult:
 	var read := await _read(board, offset, limit, &"")
 	if not read.ok:
 		return read
 
-	var out: Array[DotLeaderboardEntry] = []
+	var out: Array[GSLeaderboardEntry] = []
 	for row in (read.value as Dictionary).get("rows", []):
 		out.append(_entry(board, row))
-	return DotResult.success(out)
+	return GSResult.success(out)
 
 
 ## The best [param count] entries.
-func top(board: DotLeaderboardDef, count: int = 10) -> DotResult:
+func top(board: GSLeaderboardDef, count: int = 10) -> GSResult:
 	return await page(board, 0, count)
 
 
 ## One player's entry with its rank, or a success carrying null.
-func entry_for(board: DotLeaderboardDef, player_id: StringName) -> DotResult:
+func entry_for(board: GSLeaderboardDef, player_id: StringName) -> GSResult:
 	var read := await _read(board, 0, 1, player_id)
 	if not read.ok:
 		if read.error.http_status == 404:
-			return DotResult.success(null)
+			return GSResult.success(null)
 		return read
 
 	var mine: Variant = (read.value as Dictionary).get("self")
-	return DotResult.success(_entry(board, mine) if mine is Dictionary else null)
+	return GSResult.success(_entry(board, mine) if mine is Dictionary else null)
 
 
 ## The player's rank, for the manager to stamp on a fresh entry.
-func rank_entry(board: DotLeaderboardDef, player_id: StringName) -> DotResult:
+func rank_entry(board: GSLeaderboardDef, player_id: StringName) -> GSResult:
 	var found := await entry_for(board, player_id)
 	if not found.ok:
 		return found
-	return DotResult.success(found.value.rank if found.value != null else 0)
+	return GSResult.success(found.value.rank if found.value != null else 0)
 
 
 ## The player's row with [param radius] entries each side. Two requests: the site gives the
 ## rank only with the player's own row, and a page is addressed by offset. No entry: top of board.
-func around(board: DotLeaderboardDef, player_id: StringName, radius: int = 3) -> DotResult:
+func around(board: GSLeaderboardDef, player_id: StringName, radius: int = 3) -> GSResult:
 	var found := await entry_for(board, player_id)
 	if not found.ok:
 		return found
@@ -148,27 +148,27 @@ func around(board: DotLeaderboardDef, player_id: StringName, radius: int = 3) ->
 	if found.value == null:
 		return await page(board, 0, radius * 2 + 1)
 
-	var rank: int = (found.value as DotLeaderboardEntry).rank
+	var rank: int = (found.value as GSLeaderboardEntry).rank
 	var start := maxi(0, rank - 1 - radius)
 	return await page(board, start, radius * 2 + 1)
 
 
-func count_on(board: DotLeaderboardDef) -> DotResult:
+func count_on(board: GSLeaderboardDef) -> GSResult:
 	var read := await _read(board, 0, 1, &"")
 	if not read.ok:
 		return read
-	return DotResult.success(int(((read.value as Dictionary).get("board", {}) as Dictionary).get("entries", 0)))
+	return GSResult.success(int(((read.value as Dictionary).get("board", {}) as Dictionary).get("entries", 0)))
 
 
-func stats_for(_player_id: StringName) -> DotResult:
-	return DotResult.fail(DotError.CODE_UNSUPPORTED, "The backbone store holds boards, not statistics.")
+func stats_for(_player_id: StringName) -> GSResult:
+	return GSResult.fail(GSError.CODE_UNSUPPORTED, "The backbone store holds boards, not statistics.")
 
 
-func add_stats(_player_id: StringName, _stats: DotStatSet) -> DotResult:
-	return DotResult.fail(DotError.CODE_UNSUPPORTED, "The backbone store holds boards, not statistics.")
+func add_stats(_player_id: StringName, _stats: GSStatSet) -> GSResult:
+	return GSResult.fail(GSError.CODE_UNSUPPORTED, "The backbone store holds boards, not statistics.")
 
 
-## `"id|k=v;k=v"` back to a board id and a scope map: the inverse of [method DotLeaderboardDef.key].
+## `"id|k=v;k=v"` back to a board id and a scope map: the inverse of [method GSLeaderboardDef.key].
 static func split_key(key: String) -> Dictionary:
 	var parts := key.split("|", true, 1)
 	var scope := {}
@@ -180,7 +180,7 @@ static func split_key(key: String) -> Dictionary:
 	return {"board": parts[0], "scope": scope}
 
 
-func _read(board: DotLeaderboardDef, offset: int, limit: int, player_id: StringName) -> DotResult:
+func _read(board: GSLeaderboardDef, offset: int, limit: int, player_id: StringName) -> GSResult:
 	var unavailable := _need_client()
 	if unavailable != null:
 		return unavailable
@@ -197,13 +197,13 @@ func _read(board: DotLeaderboardDef, offset: int, limit: int, player_id: StringN
 	var res: Variant = await client.call("get_integration", BOARD_PATH, query)
 	var checked := _checked(res)
 	if not checked.ok and checked.error.http_status == 403:
-		DotLog.warn(CHANNEL, "the backbone refused the read; the integration may lack a scope", {"need": SCOPE_READ})
+		GSLog.warn(CHANNEL, "the backbone refused the read; the integration may lack a scope", {"need": SCOPE_READ})
 	return checked
 
 
-func _entry(board: DotLeaderboardDef, row: Variant) -> DotLeaderboardEntry:
+func _entry(board: GSLeaderboardDef, row: Variant) -> GSLeaderboardEntry:
 	var data: Dictionary = row if row is Dictionary else {}
-	var entry := DotLeaderboardEntry.make(
+	var entry := GSLeaderboardEntry.make(
 		board.key(), StringName(str(data.get("player", ""))), str(data.get("name", "")),
 		float(data.get("value", 0.0)), data.get("meta") if data.get("meta") is Dictionary else {}
 	)
@@ -212,20 +212,20 @@ func _entry(board: DotLeaderboardDef, row: Variant) -> DotLeaderboardEntry:
 	return entry
 
 
-func _need_client() -> DotResult:
+func _need_client() -> GSResult:
 	if is_available():
 		return null
-	return DotResult.fail(
-		DotError.CODE_STATE, "No backbone client; the leaderboard store is off.",
-		"assign DotLeaderboardStoreBackbone.client from dot-auth's DotBackboneClient"
+	return GSResult.fail(
+		GSError.CODE_STATE, "No backbone client; the leaderboard store is off.",
+		"assign GSLeaderboardStoreBackbone.client from dot-auth's GSBackboneClient"
 	)
 
 
-## A client answer as a DotResult holding the response dictionary.
-func _checked(res: Variant) -> DotResult:
-	if not (res is DotResult):
-		return DotResult.fail(DotError.CODE_INTERNAL, "The backbone client returned something unexpected.", str(res))
-	var typed: DotResult = res
+## A client answer as a GSResult holding the response dictionary.
+func _checked(res: Variant) -> GSResult:
+	if not (res is GSResult):
+		return GSResult.fail(GSError.CODE_INTERNAL, "The backbone client returned something unexpected.", str(res))
+	var typed: GSResult = res
 	if typed.ok and not (typed.value is Dictionary):
-		return DotResult.fail(DotError.CODE_PARSE, "The backbone answered with something other than an object.")
+		return GSResult.fail(GSError.CODE_PARSE, "The backbone answered with something other than an object.")
 	return typed

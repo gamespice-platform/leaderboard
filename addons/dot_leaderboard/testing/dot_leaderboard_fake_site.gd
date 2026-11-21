@@ -1,4 +1,4 @@
-class_name DotLeaderboardFakeSite
+class_name GSLeaderboardFakeSite
 extends RefCounted
 
 ## An in-process stand-in for the site's leaderboard endpoints, for tests: pass it as a manager's
@@ -35,12 +35,12 @@ func posts() -> int:
 	return n
 
 
-func post_integration(path: String, body: Dictionary) -> DotResult:
+func post_integration(path: String, body: Dictionary) -> GSResult:
 	await _wait()
 	return _answer(handle("POST", path, {}, body))
 
 
-func get_integration(path: String, query: Dictionary) -> DotResult:
+func get_integration(path: String, query: Dictionary) -> GSResult:
 	await _wait()
 	return _answer(handle("GET", path, query, null))
 
@@ -86,10 +86,10 @@ func _wait() -> void:
 		await tree.process_frame
 
 
-func _answer(res: Dictionary) -> DotResult:
+func _answer(res: Dictionary) -> GSResult:
 	if int(res["status"]) >= 400:
-		return DotResult.failure(DotError.from_http(int(res["status"]), JSON.stringify(res["reply"])))
-	return DotResult.success(res["reply"])
+		return GSResult.failure(GSError.from_http(int(res["status"]), JSON.stringify(res["reply"])))
+	return GSResult.success(res["reply"])
 
 
 func _key(board: String, scope: Dictionary) -> String:

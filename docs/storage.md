@@ -1,12 +1,12 @@
 # Storage
 
-`DotLeaderboardStore` and its two implementations, and why the manager has `_async` forms.
+`GSLeaderboardStore` and its two implementations, and why the manager has `_async` forms.
 
 ## SQL storage, through GameSpice SQL
 
-`DotLeaderboardStoreSql` holds its driver **untyped** and asks it for `query`, `execute`, `batch`, `upsert_sql`, `dialect` and `migrate`, so no file in the addon names a GameSpice SQL class and the addon parses in a project that has not installed it: the same bargain GameSpice Moderation's SQL store makes. GameSpice SQL is linked into `addons/` (gitignored) only for the suites. The tables are `DotLeaderboardSqlSchema`'s plain-dictionary specs, which the driver renders per dialect, so MySQL's refusal to index TEXT and its missing `CREATE INDEX IF NOT EXISTS` are GameSpice SQL's problem rather than another copy here. A database written by a newer build is refused at `open()`, by GameSpice SQL's migrator, rather than read with columns that changed meaning.
+`GSLeaderboardStoreSql` holds its driver **untyped** and asks it for `query`, `execute`, `batch`, `upsert_sql`, `dialect` and `migrate`, so no file in the addon names a GameSpice SQL class and the addon parses in a project that has not installed it: the same bargain GameSpice Moderation's SQL store makes. GameSpice SQL is linked into `addons/` (gitignored) only for the suites. The tables are `GSLeaderboardSqlSchema`'s plain-dictionary specs, which the driver renders per dialect, so MySQL's refusal to index TEXT and its missing `CREATE INDEX IF NOT EXISTS` are GameSpice SQL's problem rather than another copy here. A database written by a newer build is refused at `open()`, by GameSpice SQL's migrator, rather than read with columns that changed meaning.
 
-- **`board_key` is the whole address** (`DotLeaderboardDef.key()`), not an id and a scope in columns, for the reason the scope is string keys at all.
+- **`board_key` is the whole address** (`GSLeaderboardDef.key()`), not an id and a scope in columns, for the reason the scope is string keys at all.
 - **No column is `value`, `rank` or `key`.** `rank` and `key` are reserved on MySQL and refused by GameSpice SQL; the value is `score`, a counter is `amount`, a computed rank comes back as `place`.
 - **Counters are added by the database**, `amount = amount + excluded.amount` (MySQL: `amount + VALUES(amount)`), the one statement spelled per dialect. A read, an add and a write from two servers at once lose one of the two kills; the arithmetic belongs where the row lock is.
 - **`put()` is an unconditional upsert** and returns the previous entry. Whether a value is an improvement is still the manager's call, because the store still has no ordering to judge by.
@@ -19,7 +19,7 @@ A table that rewrote every row's rank on every submission turns one write into a
 
 ## Why there are `_async` forms
 
-`DotLeaderboardStore` says every method is a coroutine in shape, because an interface written against the in-memory case has to be rewritten the first time somebody points it at a database. The manager called `store.entry_for`, `store.put` and `store.page` without `await`; against a store that really suspends, Godot aborts the call with *"Trying to call an async function without await"* and the caller gets null.
+`GSLeaderboardStore` says every method is a coroutine in shape, because an interface written against the in-memory case has to be rewritten the first time somebody points it at a database. The manager called `store.entry_for`, `store.put` and `store.page` without `await`; against a store that really suspends, Godot aborts the call with *"Trying to call an async function without await"* and the caller gets null.
 
 Adding the `await` makes `submit`, `page` and `entry_for` coroutines, which is a **parse error** at every caller that does not await them, and game-fatal-contact (`fc_boards.gd`, `fc_module._cmd_boards`, `headless_match`) and game-hungario (`hungry_progress`) do not. An addon edit that stops two games parsing is not a fix, so:
 

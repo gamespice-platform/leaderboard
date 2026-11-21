@@ -1,5 +1,5 @@
-class_name DotLeaderboardStoreMemory
-extends DotLeaderboardStore
+class_name GSLeaderboardStoreMemory
+extends GSLeaderboardStore
 
 ## Entries and statistics in dictionaries. For tests, a scratch server, and as the
 ## reference implementation.
@@ -16,14 +16,14 @@ var _rows: Dictionary = {}
 ## board key -> sorted array of entries.
 var _boards: Dictionary = {}
 
-## player id -> DotStatSet.
+## player id -> GSStatSet.
 var _stats: Dictionary = {}
 
 
-func put(entry: DotLeaderboardEntry) -> DotResult:
+func put(entry: GSLeaderboardEntry) -> GSResult:
 	if entry == null or entry.board_key == "":
-		return DotResult.fail(
-			DotError.CODE_INVALID, "An entry needs a board key."
+		return GSResult.fail(
+			GSError.CODE_INVALID, "An entry needs a board key."
 		)
 
 	if not _rows.has(entry.board_key):
@@ -32,8 +32,8 @@ func put(entry: DotLeaderboardEntry) -> DotResult:
 
 	var by_player: Dictionary = _rows[entry.board_key]
 	var previous_value: Variant = by_player.get(entry.player_id)
-	var previous: DotLeaderboardEntry = (
-		previous_value if previous_value is DotLeaderboardEntry else null
+	var previous: GSLeaderboardEntry = (
+		previous_value if previous_value is GSLeaderboardEntry else null
 	)
 
 	by_player[entry.player_id] = entry
@@ -45,7 +45,7 @@ func put(entry: DotLeaderboardEntry) -> DotResult:
 
 	rows.append(entry)
 
-	return DotResult.success(previous)
+	return GSResult.success(previous)
 
 
 ## Sorts a board and rewrites every rank on it.
@@ -57,7 +57,7 @@ func put(entry: DotLeaderboardEntry) -> DotResult:
 ## interface awkward for a database implementation that keys on the board id alone.
 ## So the manager sorts, and a store used directly is a store with unranked rows —
 ## which [method page] still returns in insertion order rather than pretending.
-func sort_board(board: DotLeaderboardDef) -> void:
+func sort_board(board: GSLeaderboardDef) -> void:
 	var key := board.key()
 	var rows_value: Variant = _boards.get(key)
 
@@ -71,7 +71,7 @@ func sort_board(board: DotLeaderboardDef) -> void:
 	# `sort_custom` is not a stable sort, and a page boundary that moves between two
 	# requests shows one player twice and another not at all. It is not a ranking rule:
 	# see below. The SQL store orders the same way, so the two agree page for page.
-	rows.sort_custom(func(a: DotLeaderboardEntry, b: DotLeaderboardEntry) -> bool:
+	rows.sort_custom(func(a: GSLeaderboardEntry, b: GSLeaderboardEntry) -> bool:
 		if a.value == b.value:
 			return String(a.player_id) < String(b.player_id)
 		return a.value < b.value if lower else a.value > b.value
@@ -81,33 +81,33 @@ func sort_board(board: DotLeaderboardDef) -> void:
 	# how many are ahead of it (1, 2, 2, 4). Until 2026-10-08 the rank was the array index,
 	# so two identical times were 2nd and 3rd in whichever order the sort left them —
 	# awarding one of them a place over the other by a rule nobody agreed to (see
-	# DotLeaderboardEntry.set_at), and disagreeing with the SQL store, which counts.
+	# GSLeaderboardEntry.set_at), and disagreeing with the SQL store, which counts.
 	for i in range(rows.size()):
-		var entry := rows[i] as DotLeaderboardEntry
-		if i > 0 and entry.value == (rows[i - 1] as DotLeaderboardEntry).value:
-			entry.rank = (rows[i - 1] as DotLeaderboardEntry).rank
+		var entry := rows[i] as GSLeaderboardEntry
+		if i > 0 and entry.value == (rows[i - 1] as GSLeaderboardEntry).value:
+			entry.rank = (rows[i - 1] as GSLeaderboardEntry).rank
 		else:
 			entry.rank = i + 1
 
 
 func page(
-	board: DotLeaderboardDef, offset: int = 0, limit: int = 25
-) -> DotResult:
+	board: GSLeaderboardDef, offset: int = 0, limit: int = 25
+) -> GSResult:
 	var rows_value: Variant = _boards.get(board.key(), [])
 	var rows: Array = rows_value if rows_value is Array else []
 
-	var out: Array[DotLeaderboardEntry] = []
+	var out: Array[GSLeaderboardEntry] = []
 	var start := maxi(offset, 0)
 
 	for i in range(start, mini(start + maxi(limit, 0), rows.size())):
 		out.append(rows[i])
 
-	return DotResult.success(out)
+	return GSResult.success(out)
 
 
 func entry_for(
-	board: DotLeaderboardDef, player_id: StringName
-) -> DotResult:
+	board: GSLeaderboardDef, player_id: StringName
+) -> GSResult:
 	var by_player_value: Variant = _rows.get(board.key(), {})
 	var by_player: Dictionary = (
 		by_player_value if by_player_value is Dictionary else {}
@@ -115,17 +115,17 @@ func entry_for(
 
 	var found: Variant = by_player.get(player_id)
 
-	return DotResult.success(
-		found if found is DotLeaderboardEntry else null
+	return GSResult.success(
+		found if found is GSLeaderboardEntry else null
 	)
 
 
-func count_on(board: DotLeaderboardDef) -> DotResult:
+func count_on(board: GSLeaderboardDef) -> GSResult:
 	var rows_value: Variant = _boards.get(board.key(), [])
-	return DotResult.success((rows_value as Array).size() if rows_value is Array else 0)
+	return GSResult.success((rows_value as Array).size() if rows_value is Array else 0)
 
 
-func remove(board: DotLeaderboardDef, player_id: StringName) -> DotResult:
+func remove(board: GSLeaderboardDef, player_id: StringName) -> GSResult:
 	var key := board.key()
 	var by_player_value: Variant = _rows.get(key, {})
 	var by_player: Dictionary = (
@@ -134,8 +134,8 @@ func remove(board: DotLeaderboardDef, player_id: StringName) -> DotResult:
 
 	var found: Variant = by_player.get(player_id)
 
-	if not (found is DotLeaderboardEntry):
-		return DotResult.success(false)
+	if not (found is GSLeaderboardEntry):
+		return GSResult.success(false)
 
 	by_player.erase(player_id)
 
@@ -145,29 +145,29 @@ func remove(board: DotLeaderboardDef, player_id: StringName) -> DotResult:
 
 	sort_board(board)
 
-	return DotResult.success(true)
+	return GSResult.success(true)
 
 
-func add_stats(player_id: StringName, stats: DotStatSet) -> DotResult:
+func add_stats(player_id: StringName, stats: GSStatSet) -> GSResult:
 	if stats == null:
-		return DotResult.fail(DotError.CODE_INVALID, "No stats to add.")
+		return GSResult.fail(GSError.CODE_INVALID, "No stats to add.")
 
 	if not _stats.has(player_id):
-		_stats[player_id] = DotStatSet.new()
+		_stats[player_id] = GSStatSet.new()
 
-	(_stats[player_id] as DotStatSet).add_from(stats)
+	(_stats[player_id] as GSStatSet).add_from(stats)
 
-	return DotResult.success(_stats[player_id])
+	return GSResult.success(_stats[player_id])
 
 
-func stats_for(player_id: StringName) -> DotResult:
+func stats_for(player_id: StringName) -> GSResult:
 	var found: Variant = _stats.get(player_id)
 
 	# An empty set rather than null, so a caller reading a counter does not have to
 	# check twice. A player with no statistics has zero of everything, which is what
 	# an empty set says.
-	return DotResult.success(
-		found if found is DotStatSet else DotStatSet.new()
+	return GSResult.success(
+		found if found is GSStatSet else GSStatSet.new()
 	)
 
 

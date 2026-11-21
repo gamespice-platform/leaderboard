@@ -1,10 +1,10 @@
-class_name DotLeaderboardStore
+class_name GSLeaderboardStore
 extends RefCounted
 
 ## Where entries and statistics live. Subclass to put them somewhere else.
 ##
-## Same shape and the same reasoning as [code]DotTimerStore[/code]: everything returns
-## a [DotResult] and everything is a coroutine in shape even where it does not need to
+## Same shape and the same reasoning as [code]GSTimerStore[/code]: everything returns
+## a [GSResult] and everything is a coroutine in shape even where it does not need to
 ## be, because an interface written against the in-memory case has to be rewritten the
 ## first time somebody points it at a database.
 ##
@@ -19,18 +19,18 @@ extends RefCounted
 ## The previous one rather than a bool, because every caller needs it: "you improved
 ## by 0.4 seconds" is the message, and re-reading it is a second round trip in the
 ## store that just wrote it.
-func put(_entry: DotLeaderboardEntry) -> DotResult:
-	return DotResult.fail(
-		DotError.CODE_UNSUPPORTED, "DotLeaderboardStore.put() was not overridden."
+func put(_entry: GSLeaderboardEntry) -> GSResult:
+	return GSResult.fail(
+		GSError.CODE_UNSUPPORTED, "GSLeaderboardStore.put() was not overridden."
 	)
 
 
-## A page of a board, best first. Returns an [code]Array[DotLeaderboardEntry][/code].
+## A page of a board, best first. Returns an [code]Array[GSLeaderboardEntry][/code].
 func page(
-	_board: DotLeaderboardDef, _offset: int = 0, _limit: int = 25
-) -> DotResult:
-	return DotResult.fail(
-		DotError.CODE_UNSUPPORTED, "DotLeaderboardStore.page() was not overridden."
+	_board: GSLeaderboardDef, _offset: int = 0, _limit: int = 25
+) -> GSResult:
+	return GSResult.fail(
+		GSError.CODE_UNSUPPORTED, "GSLeaderboardStore.page() was not overridden."
 	)
 
 
@@ -40,52 +40,52 @@ func page(
 ## making it a failure means every caller has to tell "no entry" from "the database is
 ## down" by inspecting an error code — which somebody will not do.
 func entry_for(
-	_board: DotLeaderboardDef, _player_id: StringName
-) -> DotResult:
-	return DotResult.fail(
-		DotError.CODE_UNSUPPORTED,
-		"DotLeaderboardStore.entry_for() was not overridden."
+	_board: GSLeaderboardDef, _player_id: StringName
+) -> GSResult:
+	return GSResult.fail(
+		GSError.CODE_UNSUPPORTED,
+		"GSLeaderboardStore.entry_for() was not overridden."
 	)
 
 
 ## How many players are on a board.
-func count_on(_board: DotLeaderboardDef) -> DotResult:
-	return DotResult.fail(
-		DotError.CODE_UNSUPPORTED,
-		"DotLeaderboardStore.count_on() was not overridden."
+func count_on(_board: GSLeaderboardDef) -> GSResult:
+	return GSResult.fail(
+		GSError.CODE_UNSUPPORTED,
+		"GSLeaderboardStore.count_on() was not overridden."
 	)
 
 
 ## Removes a player's entry. For moderation.
 func remove(
-	_board: DotLeaderboardDef, _player_id: StringName
-) -> DotResult:
-	return DotResult.fail(
-		DotError.CODE_UNSUPPORTED, "DotLeaderboardStore.remove() was not overridden."
+	_board: GSLeaderboardDef, _player_id: StringName
+) -> GSResult:
+	return GSResult.fail(
+		GSError.CODE_UNSUPPORTED, "GSLeaderboardStore.remove() was not overridden."
 	)
 
 
 ## Adds counters into a player's stats, and returns the totals.
-func add_stats(_player_id: StringName, _stats: DotStatSet) -> DotResult:
-	return DotResult.fail(
-		DotError.CODE_UNSUPPORTED,
-		"DotLeaderboardStore.add_stats() was not overridden."
+func add_stats(_player_id: StringName, _stats: GSStatSet) -> GSResult:
+	return GSResult.fail(
+		GSError.CODE_UNSUPPORTED,
+		"GSLeaderboardStore.add_stats() was not overridden."
 	)
 
 
 ## A player's accumulated statistics. Never null on success — an empty set, so a
 ## caller reading a counter does not have to check twice.
-func stats_for(_player_id: StringName) -> DotResult:
-	return DotResult.fail(
-		DotError.CODE_UNSUPPORTED,
-		"DotLeaderboardStore.stats_for() was not overridden."
+func stats_for(_player_id: StringName) -> GSResult:
+	return GSResult.fail(
+		GSError.CODE_UNSUPPORTED,
+		"GSLeaderboardStore.stats_for() was not overridden."
 	)
 
 
 ## Whether every method here answers without suspending.
 ##
 ## [b]True by default, and only a store that reaches a database says otherwise.[/b]
-## [DotLeaderboardManager]'s [code]submit[/code], [code]page[/code] and
+## [GSLeaderboardManager]'s [code]submit[/code], [code]page[/code] and
 ## [code]entry_for[/code] are synchronous — two games call them without [code]await[/code],
 ## and making them coroutines is a parse error in both — so they call the store without
 ## awaiting it. A store that suspends under a call nobody awaited aborts that function with

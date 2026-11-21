@@ -1,4 +1,4 @@
-class_name DotStatSet
+class_name GSStatSet
 extends RefCounted
 
 ## Per-player counters: kills, distance, jumps, time played, whatever a game counts.
@@ -7,7 +7,7 @@ extends RefCounted
 ## them is the usual mistake. A leaderboard is "one number per player, ordered"; a
 ## stat set is "many numbers per player, accumulated". A board is often derived from
 ## a stat — "most kills" is an ordering over the kills counter — and
-## [method DotLeaderboardManager.publish_stat] is how, but a stat that nothing ranks
+## [method GSLeaderboardManager.publish_stat] is how, but a stat that nothing ranks
 ## is still worth keeping and a board whose value is not a counter is common.
 ##
 ## [b]Everything is a float and everything is additive.[/b] A single numeric type
@@ -66,7 +66,7 @@ func set_lowest(id: StringName, value: float) -> void:
 ## and this method cannot tell — so a game that keeps bests merges those itself, or
 ## keeps them on a board rather than in a stat set. Named [code]add_from[/code] rather
 ## than [code]merge[/code] to make that explicit at the call site.
-func add_from(other: DotStatSet) -> void:
+func add_from(other: GSStatSet) -> void:
 	if other == null:
 		return
 
@@ -91,8 +91,8 @@ func to_dictionary() -> Dictionary:
 	return out
 
 
-static func from_dictionary(data: Dictionary) -> DotStatSet:
-	var out := DotStatSet.new()
+static func from_dictionary(data: Dictionary) -> GSStatSet:
+	var out := GSStatSet.new()
 
 	for key in data:
 		# Non-numeric values are dropped rather than coerced. This arrives from a
@@ -106,8 +106,8 @@ static func from_dictionary(data: Dictionary) -> DotStatSet:
 	return out
 
 
-func duplicate_stats() -> DotStatSet:
-	var out := DotStatSet.new()
+func duplicate_stats() -> GSStatSet:
+	var out := GSStatSet.new()
 	out.values = values.duplicate()
 	return out
 
@@ -117,4 +117,4 @@ func describe() -> Dictionary:
 
 
 func _to_string() -> String:
-	return "DotStatSet(%d counters)" % values.size()
+	return "GSStatSet(%d counters)" % values.size()

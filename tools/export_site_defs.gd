@@ -17,12 +17,12 @@ func _init() -> void:
 		return
 	var boards: Array = script.call(method)
 	for b in boards:
-		var valid := (b as DotLeaderboardDef).validate()
+		var valid := (b as GSLeaderboardDef).validate()
 		if not valid.ok:
 			printerr("export_site_defs: board invalid: %s" % valid.message)
 			quit(2)
 			return
-	var text := JSON.stringify(DotLeaderboardDef.to_site_defs(boards, int(args.get("game", 0))), "\t", false) + "\n"
+	var text := JSON.stringify(GSLeaderboardDef.to_site_defs(boards, int(args.get("game", 0))), "\t", false) + "\n"
 	if args.has("check"):
 		if FileAccess.get_file_as_string(out_path) != text:
 			printerr("export_site_defs: %s is out of date; re-run without --check" % out_path)

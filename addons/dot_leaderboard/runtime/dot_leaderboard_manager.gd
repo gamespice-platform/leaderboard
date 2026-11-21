@@ -1,22 +1,22 @@
 @tool
-class_name DotLeaderboardManager
+class_name GSLeaderboardManager
 extends Node
 
 ## The node a game adds: its boards, its store, its statistics, and the reporter.
 ##
 ## [codeblock]
-## var boards := DotLeaderboardManager.new()
-## boards.store = DotLeaderboardStoreMemory.new()
+## var boards := GSLeaderboardManager.new()
+## boards.store = GSLeaderboardStoreMemory.new()
 ## add_child(boards)
 ##
-## boards.define(DotLeaderboardDef.make(&"fastest", DotLeaderboardDef.Kind.TIME,
+## boards.define(GSLeaderboardDef.make(&"fastest", GSLeaderboardDef.Kind.TIME,
 ##     {"map": "surf_beginner", "track": "0", "style": "normal"}))
 ##
 ## await boards.submit(&"fastest", {"map": "surf_beginner", "track": "0",
 ##     "style": "normal"}, player_id, player_name, run.time())
 ## [/codeblock]
 ##
-## With a store that reaches a database ([DotLeaderboardStoreSql]), open it first and use
+## With a store that reaches a database ([GSLeaderboardStoreSql]), open it first and use
 ## the awaited forms — [method submit_async], [method page_async], [method entry_for_async] —
 ## which work with every store; the plain forms are synchronous and refuse such a store in
 ## words. Why there are two is written above [method submit].
@@ -31,22 +31,22 @@ const CHANNEL := "leaderboard"
 
 ## An entry was filed. [param previous] is what the player had before, or null.
 signal entry_accepted(
-	board: DotLeaderboardDef,
-	entry: DotLeaderboardEntry,
-	previous: DotLeaderboardEntry
+	board: GSLeaderboardDef,
+	entry: GSLeaderboardEntry,
+	previous: GSLeaderboardEntry
 )
 
 ## An entry was not filed, and why.
 signal entry_refused(board_id: StringName, player_id: StringName, reason: String)
 
 ## A player's statistics changed.
-signal stats_changed(player_id: StringName, totals: DotStatSet)
+signal stats_changed(player_id: StringName, totals: GSStatSet)
 
 @export_group("Reporting")
 
 ## Whether accepted entries are queued for the backbone.
 ##
-## Per-board [member DotLeaderboardDef.publish] still decides individually; this is
+## Per-board [member GSLeaderboardDef.publish] still decides individually; this is
 ## the master switch, so a server can be taken off the site's leaderboards without
 ## editing every board.
 @export var report_to_backbone: bool = false
@@ -65,10 +65,10 @@ signal stats_changed(player_id: StringName, totals: DotStatSet)
 var backbone_client: Object = null
 
 ## Where entries live. A store that suspends must be opened before it is used here.
-var store: DotLeaderboardStore = null
+var store: GSLeaderboardStore = null
 
 ## Sends published entries to the backbone. Assign its client from GameSpice Auth.
-var reporter := DotLeaderboardReporter.new()
+var reporter := GSLeaderboardReporter.new()
 
 ## Board templates by id.
 var _definitions: Dictionary = {}
@@ -94,18 +94,18 @@ func _ready() -> void:
 		add_child(_report_timer)
 
 
-func _make_store() -> DotLeaderboardStore:
+func _make_store() -> GSLeaderboardStore:
 	if backend != "backbone":
-		return DotLeaderboardStoreMemory.new()
+		return GSLeaderboardStoreMemory.new()
 
 	var client: Object = backbone_client
 	if client == null:
-		client = DotRegistry.get_service(&"dot_backbone_client")
+		client = GSRegistry.get_service(&"dot_backbone_client")
 	if client == null:
-		DotLog.warn(CHANNEL, "backend is backbone but no client is available; using memory")
-		return DotLeaderboardStoreMemory.new()
+		GSLog.warn(CHANNEL, "backend is backbone but no client is available; using memory")
+		return GSLeaderboardStoreMemory.new()
 
-	return DotLeaderboardStoreBackbone.with_client(client)
+	return GSLeaderboardStoreBackbone.with_client(client)
 
 
 func _exit_tree() -> void:
@@ -122,9 +122,9 @@ func _exit_tree() -> void:
 # --- Boards ----------------------------------------------------------------
 
 ## Registers a board template.
-func define(board: DotLeaderboardDef) -> DotResult:
+func define(board: GSLeaderboardDef) -> GSResult:
 	if board == null:
-		return DotResult.fail(DotError.CODE_INVALID, "No board to define.")
+		return GSResult.fail(GSError.CODE_INVALID, "No board to define.")
 
 	var valid := board.validate()
 
@@ -133,19 +133,19 @@ func define(board: DotLeaderboardDef) -> DotResult:
 
 	_definitions[board.id] = board
 
-	return DotResult.success(board)
+	return GSResult.success(board)
 
 
-func definition(id: StringName) -> DotLeaderboardDef:
+func definition(id: StringName) -> GSLeaderboardDef:
 	var found: Variant = _definitions.get(id)
-	return found if found is DotLeaderboardDef else null
+	return found if found is GSLeaderboardDef else null
 
 
 ## The board for an id and a scope, creating the scoped instance if needed.
 ##
 ## Cached by key. The key is a sorted string build, and this is called for every
 ## submission and every page render.
-func board_for(id: StringName, scope: Dictionary = {}) -> DotLeaderboardDef:
+func board_for(id: StringName, scope: Dictionary = {}) -> GSLeaderboardDef:
 	var template := definition(id)
 
 	if template == null:
@@ -165,13 +165,13 @@ func board_for(id: StringName, scope: Dictionary = {}) -> DotLeaderboardDef:
 	return scoped
 
 
-func definitions() -> Array[DotLeaderboardDef]:
-	var out: Array[DotLeaderboardDef] = []
+func definitions() -> Array[GSLeaderboardDef]:
+	var out: Array[GSLeaderboardDef] = []
 
 	for id in _definitions:
 		out.append(_definitions[id])
 
-	out.sort_custom(func(a: DotLeaderboardDef, b: DotLeaderboardDef) -> bool:
+	out.sort_custom(func(a: GSLeaderboardDef, b: GSLeaderboardDef) -> bool:
 		return String(a.id) < String(b.id)
 	)
 
@@ -181,16 +181,16 @@ func definitions() -> Array[DotLeaderboardDef]:
 # --- Submitting ------------------------------------------------------------
 #
 # [b]Two forms of the three calls a game makes, and the reason is a parse error.[/b] A store
-# is "a coroutine in shape" (DotLeaderboardStore), but `submit`, `page` and `entry_for`
+# is "a coroutine in shape" (GSLeaderboardStore), but `submit`, `page` and `entry_for`
 # were written against the memory store and called it without `await`. Against a store that
-# really suspends — DotLeaderboardStoreSql — that aborts the call with "Trying to call an
+# really suspends — GSLeaderboardStoreSql — that aborts the call with "Trying to call an
 # async function without await" and hands the caller null. Adding the `await` here is the
 # fix, and it makes each of them a coroutine, which is a PARSE error at every caller that
 # does not await it: game-fatal-contact (`_cmd_boards`, headless_match) and game-hungario (`_submit`,
 # `page`) call them synchronously today, and an addon edit that stops two games parsing is
 # not a fix. So the `_async` forms are the real ones and work with every store; the plain
 # forms stay synchronous, keep working with the memory store, and refuse an asynchronous
-# store in words (DotLeaderboardStore.is_synchronous). When those games await, the plain
+# store in words (GSLeaderboardStore.is_synchronous). When those games await, the plain
 # forms can become the awaited ones and the `_async` names can go.
 
 ## Files a value on a board. Synchronous; see the note above, and [method submit_async].
@@ -205,7 +205,7 @@ func submit(
 	player_name: String,
 	value: float,
 	meta: Dictionary = {}
-) -> DotResult:
+) -> GSResult:
 	var ready := _prepare(board_id, scope, player_id, value)
 	if not ready.ok:
 		return ready
@@ -213,20 +213,20 @@ func submit(
 	if not synchronous.ok:
 		return synchronous
 
-	var board: DotLeaderboardDef = ready.value
+	var board: GSLeaderboardDef = ready.value
 	var existing := store.entry_for(board, player_id)
 	if not existing.ok:
 		return existing
 
-	var previous: DotLeaderboardEntry = (
-		existing.value if existing.value is DotLeaderboardEntry else null
+	var previous: GSLeaderboardEntry = (
+		existing.value if existing.value is GSLeaderboardEntry else null
 	)
 	if previous != null and not board.beats(value, previous.value):
 		# Not an error. Most results are worse than the player's own best, and
 		# treating that as a failure means every caller has to tell the two apart.
-		return DotResult.success(previous)
+		return GSResult.success(previous)
 
-	var entry := DotLeaderboardEntry.make(board.key(), player_id, player_name, value, meta)
+	var entry := GSLeaderboardEntry.make(board.key(), player_id, player_name, value, meta)
 	var wrote := store.put(entry)
 	if not wrote.ok:
 		entry_refused.emit(board_id, player_id, wrote.error.message)
@@ -249,28 +249,28 @@ func submit_async(
 	player_name: String,
 	value: float,
 	meta: Dictionary = {}
-) -> DotResult:
+) -> GSResult:
 	var ready := _prepare(board_id, scope, player_id, value)
 	if not ready.ok:
 		return ready
 
-	var board: DotLeaderboardDef = ready.value
+	var board: GSLeaderboardDef = ready.value
 	var declared := await _declare(board)
 	if not declared.ok:
 		return declared
 
-	var existing: DotResult = await store.entry_for(board, player_id)
+	var existing: GSResult = await store.entry_for(board, player_id)
 	if not existing.ok:
 		return existing
 
-	var previous: DotLeaderboardEntry = (
-		existing.value if existing.value is DotLeaderboardEntry else null
+	var previous: GSLeaderboardEntry = (
+		existing.value if existing.value is GSLeaderboardEntry else null
 	)
 	if previous != null and not board.beats(value, previous.value):
-		return DotResult.success(previous)
+		return GSResult.success(previous)
 
-	var entry := DotLeaderboardEntry.make(board.key(), player_id, player_name, value, meta)
-	var wrote: DotResult = await store.put(entry)
+	var entry := GSLeaderboardEntry.make(board.key(), player_id, player_name, value, meta)
+	var wrote: GSResult = await store.put(entry)
 	if not wrote.ok:
 		entry_refused.emit(board_id, player_id, wrote.error.message)
 		return wrote
@@ -281,7 +281,7 @@ func submit_async(
 
 
 ## Writes [param value] whether or not it beats the held one: a board whose newest value
-## is the right one ([member DotLeaderboardDef.running_total]). Awaited, for any store.
+## is the right one ([member GSLeaderboardDef.running_total]). Awaited, for any store.
 func replace_async(
 	board_id: StringName,
 	scope: Dictionary,
@@ -289,25 +289,25 @@ func replace_async(
 	player_name: String,
 	value: float,
 	meta: Dictionary = {}
-) -> DotResult:
+) -> GSResult:
 	var ready := _prepare(board_id, scope, player_id, value)
 	if not ready.ok:
 		return ready
 
-	var board: DotLeaderboardDef = ready.value
+	var board: GSLeaderboardDef = ready.value
 	var declared := await _declare(board)
 	if not declared.ok:
 		return declared
 
-	var existing: DotResult = await store.entry_for(board, player_id)
-	var previous: DotLeaderboardEntry = (
-		existing.value if existing.ok and existing.value is DotLeaderboardEntry else null
+	var existing: GSResult = await store.entry_for(board, player_id)
+	var previous: GSLeaderboardEntry = (
+		existing.value if existing.ok and existing.value is GSLeaderboardEntry else null
 	)
 	if previous != null and is_equal_approx(previous.value, value) and previous.player_name == player_name:
-		return DotResult.success(previous)
+		return GSResult.success(previous)
 
-	var entry := DotLeaderboardEntry.make(board.key(), player_id, player_name, value, meta)
-	var wrote: DotResult = await store.put(entry)
+	var entry := GSLeaderboardEntry.make(board.key(), player_id, player_name, value, meta)
+	var wrote: GSResult = await store.put(entry)
 	if not wrote.ok:
 		entry_refused.emit(board_id, player_id, wrote.error.message)
 		return wrote
@@ -321,30 +321,30 @@ func replace_async(
 ## ([code]rank_entry[/code]) — a per-board "last written" slot was overwritten by a second
 ## submission to the same board before the first was ranked, and the first went back
 ## unranked. A rank that could not be read is not a refusal; the entry IS on the board.
-func _rank_written(board: DotLeaderboardDef, entry: DotLeaderboardEntry) -> void:
+func _rank_written(board: GSLeaderboardDef, entry: GSLeaderboardEntry) -> void:
 	var ranked: Variant = null
 	if store.has_method("rank_entry"):
 		ranked = await store.call("rank_entry", board, entry.player_id)
-		if ranked is DotResult and (ranked as DotResult).ok:
-			entry.rank = int((ranked as DotResult).value)
+		if ranked is GSResult and (ranked as GSResult).ok:
+			entry.rank = int((ranked as GSResult).value)
 	elif store.has_method("sort_board"):
 		ranked = await store.call("sort_board", board)
-	if ranked is DotResult and not (ranked as DotResult).ok:
-		DotLog.debug(CHANNEL, "an accepted entry could not be ranked", {
-			"board": board.key(), "why": (ranked as DotResult).error.message,
+	if ranked is GSResult and not (ranked as GSResult).ok:
+		GSLog.debug(CHANNEL, "an accepted entry could not be ranked", {
+			"board": board.key(), "why": (ranked as GSResult).error.message,
 		})
 
 
 ## The refusals both forms share: an unknown board, a non-finite value.
 func _prepare(
 	board_id: StringName, scope: Dictionary, player_id: StringName, value: float
-) -> DotResult:
+) -> GSResult:
 	var board := board_for(board_id, scope)
 
 	if board == null:
 		var reason := "No such board."
 		entry_refused.emit(board_id, player_id, reason)
-		return DotResult.fail(DotError.CODE_IO, reason, String(board_id))
+		return GSResult.fail(GSError.CODE_IO, reason, String(board_id))
 
 	if not is_finite(value):
 		# A NaN sorts unpredictably and, once on a board, cannot be compared out of
@@ -352,41 +352,41 @@ func _prepare(
 		# replaces it. Cheap to refuse here; effectively unfixable afterwards.
 		var reason := "That value is not a finite number."
 		entry_refused.emit(board_id, player_id, reason)
-		return DotResult.fail(DotError.CODE_INVALID, reason, str(value))
+		return GSResult.fail(GSError.CODE_INVALID, reason, str(value))
 
 	if store == null:
-		return DotResult.fail(DotError.CODE_STATE, "The board manager has no store.")
+		return GSResult.fail(GSError.CODE_STATE, "The board manager has no store.")
 
-	return DotResult.success(board)
+	return GSResult.success(board)
 
 
 ## Tells a store that keeps boards elsewhere about this one, once.
-func _declare(board: DotLeaderboardDef) -> DotResult:
+func _declare(board: GSLeaderboardDef) -> GSResult:
 	if store != null and store.has_method("declare"):
 		return await store.call("declare", board)
-	return DotResult.success(true)
+	return GSResult.success(true)
 
 
 func _accepted(
-	board: DotLeaderboardDef, entry: DotLeaderboardEntry, previous: DotLeaderboardEntry
-) -> DotResult:
+	board: GSLeaderboardDef, entry: GSLeaderboardEntry, previous: GSLeaderboardEntry
+) -> GSResult:
 	# A backbone store already wrote it; queueing it too would submit twice.
 	if report_to_backbone and not (store != null and store.has_method("is_remote")):
 		reporter.queue_entry(board, entry)
 
 	entry_accepted.emit(board, entry, previous)
 
-	return DotResult.success(entry)
+	return GSResult.success(entry)
 
 
 ## Refuses a store that suspends, from a synchronous call that cannot wait for it.
-func _synchronous_store(method: String) -> DotResult:
+func _synchronous_store(method: String) -> GSResult:
 	if store == null:
-		return DotResult.fail(DotError.CODE_STATE, "The board manager has no store.")
+		return GSResult.fail(GSError.CODE_STATE, "The board manager has no store.")
 	if store.is_synchronous():
-		return DotResult.success(true)
-	return DotResult.fail(
-		DotError.CODE_UNSUPPORTED,
+		return GSResult.success(true)
+	return GSResult.fail(
+		GSError.CODE_UNSUPPORTED,
 		"This store answers asynchronously; await %s_async() instead." % method,
 		str(store.describe().get("implementation", ""))
 	)
@@ -398,12 +398,12 @@ func page(
 	scope: Dictionary = {},
 	offset: int = 0,
 	limit: int = 0
-) -> DotResult:
+) -> GSResult:
 	var board := board_for(board_id, scope)
 
 	if board == null:
-		return DotResult.fail(
-			DotError.CODE_IO, "No such board.", String(board_id)
+		return GSResult.fail(
+			GSError.CODE_IO, "No such board.", String(board_id)
 		)
 
 	var synchronous := _synchronous_store("page")
@@ -421,16 +421,16 @@ func page_async(
 	scope: Dictionary = {},
 	offset: int = 0,
 	limit: int = 0
-) -> DotResult:
+) -> GSResult:
 	var board := board_for(board_id, scope)
 
 	if board == null:
-		return DotResult.fail(
-			DotError.CODE_IO, "No such board.", String(board_id)
+		return GSResult.fail(
+			GSError.CODE_IO, "No such board.", String(board_id)
 		)
 
 	if store == null:
-		return DotResult.fail(DotError.CODE_STATE, "The board manager has no store.")
+		return GSResult.fail(GSError.CODE_STATE, "The board manager has no store.")
 
 	return await store.page(
 		board, offset, limit if limit > 0 else board.page_size
@@ -441,12 +441,12 @@ func page_async(
 ## [method entry_for_async].
 func entry_for(
 	board_id: StringName, scope: Dictionary, player_id: StringName
-) -> DotResult:
+) -> GSResult:
 	var board := board_for(board_id, scope)
 
 	if board == null:
-		return DotResult.fail(
-			DotError.CODE_IO, "No such board.", String(board_id)
+		return GSResult.fail(
+			GSError.CODE_IO, "No such board.", String(board_id)
 		)
 
 	var synchronous := _synchronous_store("entry_for")
@@ -459,16 +459,16 @@ func entry_for(
 ## [method entry_for], awaited, for any store.
 func entry_for_async(
 	board_id: StringName, scope: Dictionary, player_id: StringName
-) -> DotResult:
+) -> GSResult:
 	var board := board_for(board_id, scope)
 
 	if board == null:
-		return DotResult.fail(
-			DotError.CODE_IO, "No such board.", String(board_id)
+		return GSResult.fail(
+			GSError.CODE_IO, "No such board.", String(board_id)
 		)
 
 	if store == null:
-		return DotResult.fail(DotError.CODE_STATE, "The board manager has no store.")
+		return GSResult.fail(GSError.CODE_STATE, "The board manager has no store.")
 
 	return await store.entry_for(board, player_id)
 
@@ -479,16 +479,16 @@ func entry_for_async(
 # so making them coroutines broke nothing.
 
 ## Adds counters to a player's totals.
-func add_stats(player_id: StringName, stats: DotStatSet) -> DotResult:
-	var added: DotResult = await store.add_stats(player_id, stats)
+func add_stats(player_id: StringName, stats: GSStatSet) -> GSResult:
+	var added: GSResult = await store.add_stats(player_id, stats)
 
-	if added.ok and added.value is DotStatSet:
+	if added.ok and added.value is GSStatSet:
 		stats_changed.emit(player_id, added.value)
 
 	return added
 
 
-func stats_for(player_id: StringName) -> DotResult:
+func stats_for(player_id: StringName) -> GSResult:
 	return await store.stats_for(player_id)
 
 
@@ -504,16 +504,16 @@ func publish_stat(
 	player_id: StringName,
 	player_name: String,
 	stat_id: StringName
-) -> DotResult:
-	var totals: DotResult = await store.stats_for(player_id)
+) -> GSResult:
+	var totals: GSResult = await store.stats_for(player_id)
 
 	if not totals.ok:
 		return totals
 
-	var set: DotStatSet = totals.value
+	var set: GSStatSet = totals.value
 
 	if not set.has(stat_id):
-		return DotResult.success(null)
+		return GSResult.success(null)
 
 	return await submit_async(
 		board_id, scope, player_id, player_name, set.get_value(stat_id)
@@ -532,7 +532,7 @@ func _on_report_due() -> void:
 	var flushed := await reporter.flush()
 
 	if not flushed.ok:
-		DotLog.debug(CHANNEL, "a leaderboard report failed", {
+		GSLog.debug(CHANNEL, "a leaderboard report failed", {
 			"why": flushed.error.message, "queued": reporter.queued()
 		})
 
@@ -558,7 +558,7 @@ func describe_lines() -> PackedStringArray:
 
 	for board in definitions():
 		out.append("  %-20s %s" % [
-			String(board.id), DotLeaderboardDef.Kind.keys()[board.kind]
+			String(board.id), GSLeaderboardDef.Kind.keys()[board.kind]
 		])
 
 	return out

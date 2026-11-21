@@ -1,9 +1,9 @@
-class_name DotLeaderboardEntry
+class_name GSLeaderboardEntry
 extends RefCounted
 
 ## One player's standing on one board.
 
-## Which board. See [method DotLeaderboardDef.key].
+## Which board. See [method GSLeaderboardDef.key].
 var board_key: String = ""
 
 ## Who, in the host's own vocabulary.
@@ -44,8 +44,8 @@ static func make(
 	p_name: String,
 	p_value: float,
 	p_meta: Dictionary = {}
-) -> DotLeaderboardEntry:
-	var entry := DotLeaderboardEntry.new()
+) -> GSLeaderboardEntry:
+	var entry := GSLeaderboardEntry.new()
 
 	entry.board_key = p_board
 	entry.player_id = p_player
@@ -69,8 +69,8 @@ func to_dictionary() -> Dictionary:
 	}
 
 
-static func from_dictionary(data: Dictionary) -> DotLeaderboardEntry:
-	var entry := DotLeaderboardEntry.new()
+static func from_dictionary(data: Dictionary) -> GSLeaderboardEntry:
+	var entry := GSLeaderboardEntry.new()
 
 	entry.board_key = str(data.get("board", ""))
 	entry.player_id = StringName(str(data.get("player", "")))
@@ -95,6 +95,6 @@ func describe() -> Dictionary:
 
 
 func _to_string() -> String:
-	return "DotLeaderboardEntry(#%d %s %.3f)" % [
+	return "GSLeaderboardEntry(#%d %s %.3f)" % [
 		rank, player_name if player_name != "" else String(player_id), value
 	]

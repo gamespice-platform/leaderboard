@@ -10,7 +10,7 @@ const _ICON := "res://addons/dot_leaderboard/icon_placeholder.svg"
 
 const _TYPES := [
 	[
-		"DotLeaderboardManager",
+		"GSLeaderboardManager",
 		"Node",
 		"res://addons/dot_leaderboard/runtime/dot_leaderboard_manager.gd",
 	],

@@ -1,8 +1,8 @@
 @tool
-class_name DotBoardsConfig
-extends DotConfig
+class_name GSBoardsConfig
+extends GSConfig
 
-## Where a game server's leaderboards live, for any game. Layered like every [DotConfig]:
+## Where a game server's leaderboards live, for any game. Layered like every [GSConfig]:
 ## defaults, JSON file, environment (`<GAME>_BOARDS_BACKEND`), command line
 ## (`--<game>_boards_backend`). Build one with [method for_game].
 
@@ -15,8 +15,8 @@ var _cli_separator: String = "_"
 
 ## A config for [param game] (e.g. "fc"). [param cli_separator] is the character between the
 ## words of the command-line flag; "_" gives `--fc_boards_backend`.
-static func for_game(game: String, cli_separator: String = "_") -> DotBoardsConfig:
-	var config := DotBoardsConfig.new()
+static func for_game(game: String, cli_separator: String = "_") -> GSBoardsConfig:
+	var config := GSBoardsConfig.new()
 	config._game = game
 	config._cli_separator = cli_separator
 	return config
@@ -37,7 +37,7 @@ func cli_prefix() -> String:
 	return "--%s%sboards%s" % [_game, _cli_separator, _cli_separator]
 
 
-func validate() -> DotResult:
+func validate() -> GSResult:
 	if backend != "memory" and backend != "backbone":
-		return DotResult.fail(DotError.CODE_INVALID, "backend must be memory or backbone")
-	return DotResult.success(null)
+		return GSResult.fail(GSError.CODE_INVALID, "backend must be memory or backbone")
+	return GSResult.success(null)

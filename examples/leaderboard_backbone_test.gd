@@ -1,7 +1,7 @@
 extends Node
 
 ## The backbone store against a fake website-city in this process, through the real
-## dot-auth DotBackboneClient (so DotHttp and the HTTPRequest path are exercised).
+## dot-auth GSBackboneClient (so GSHttp and the HTTPRequest path are exercised).
 ## Run: godot --headless --path . res://examples/leaderboard_backbone_test.tscn
 
 const CHECKS := 56
@@ -18,12 +18,12 @@ var _conns: Array = []
 ## Requests the fake saw: {method, path, query, body, auth}.
 var _seen: Array = []
 ## The site's rules (declare before submit, ranking) live in the shared fake, behind this TCP door.
-var _site := DotLeaderboardFakeSite.new()
+var _site := GSLeaderboardFakeSite.new()
 var _client: Node = null
 
 
 func _ready() -> void:
-	DotLog.set_level(DotLog.Level.ERROR)
+	GSLog.set_level(GSLog.Level.ERROR)
 	var pump := Timer.new()
 	pump.wait_time = 0.01
 	pump.timeout.connect(_pump)
@@ -60,10 +60,10 @@ func _run() -> void:
 		get_tree().quit(1)
 		return
 
-	var config := DotAuthConfig.new()
+	var config := GSAuthConfig.new()
 	config.backbone_url = "http://127.0.0.1:%d" % PORT
 	config.integration_token = "test-token"
-	_client = DotBackboneClient.new()
+	_client = GSBackboneClient.new()
 	_client.config = config
 	_client.auto_report = false
 	_client.register_as = &""
@@ -108,19 +108,19 @@ func _check(ok: bool, what: String, detail: String = "") -> void:
 		print("  FAIL  %s %s" % [what, detail])
 
 
-func _board() -> DotLeaderboardDef:
-	var board := DotLeaderboardDef.make(&"fastest", DotLeaderboardDef.Kind.TIME)
+func _board() -> GSLeaderboardDef:
+	var board := GSLeaderboardDef.make(&"fastest", GSLeaderboardDef.Kind.TIME)
 	board.display_name = "Fastest"
 	board.publish = true
 	return board.scoped({"map": "surf_a"})
 
 
-func _store() -> DotLeaderboardStoreBackbone:
-	return DotLeaderboardStoreBackbone.with_client(_client)
+func _store() -> GSLeaderboardStoreBackbone:
+	return GSLeaderboardStoreBackbone.with_client(_client)
 
 
-func _put(store: DotLeaderboardStoreBackbone, board: DotLeaderboardDef, player: String, value: float) -> DotResult:
-	return await store.put(DotLeaderboardEntry.make(board.key(), StringName(player), player.capitalize(), value))
+func _put(store: GSLeaderboardStoreBackbone, board: GSLeaderboardDef, player: String, value: float) -> GSResult:
+	return await store.put(GSLeaderboardEntry.make(board.key(), StringName(player), player.capitalize(), value))
 
 
 func _test_define_and_submit() -> void:
@@ -146,9 +146,9 @@ func _test_define_and_submit() -> void:
 	_check(body["entries"][0]["player"] == "ann" and is_equal_approx(body["entries"][0]["value"], 12.5), "entry carries player and value")
 	_check(body.has("ts") and _seen[1]["nonce"] != "", "the client stamps ts and a nonce")
 
-	var ghost := DotLeaderboardDef.make(&"nope", DotLeaderboardDef.Kind.TIME)
+	var ghost := GSLeaderboardDef.make(&"nope", GSLeaderboardDef.Kind.TIME)
 	res = await _put(store, ghost, "ann", 1.0)
-	_check(not res.ok and res.error.code == DotError.CODE_INVALID, "an undeclared board is refused with the site's reason")
+	_check(not res.ok and res.error.code == GSError.CODE_INVALID, "an undeclared board is refused with the site's reason")
 	_done()
 
 
@@ -195,14 +195,14 @@ func _test_around_me() -> void:
 
 func _test_manager_backend() -> void:
 	_section("manager selects the backend")
-	var manager := DotLeaderboardManager.new()
+	var manager := GSLeaderboardManager.new()
 	manager.backend = "backbone"
 	manager.backbone_client = _client
 	manager.report_to_backbone = true
 	manager.report_interval = 0.0
 	add_child(manager)
-	_check(manager.store is DotLeaderboardStoreBackbone, "backend=backbone builds the backbone store")
-	var def := DotLeaderboardDef.make(&"fastest", DotLeaderboardDef.Kind.TIME)
+	_check(manager.store is GSLeaderboardStoreBackbone, "backend=backbone builds the backbone store")
+	var def := GSLeaderboardDef.make(&"fastest", GSLeaderboardDef.Kind.TIME)
 	def.display_name = "Fastest"
 	def.publish = true
 	manager.define(def)
@@ -220,11 +220,11 @@ func _test_manager_backend() -> void:
 	var page := await manager.page_async(&"fastest", {"map": "surf_b"})
 	_check(page.ok and page.value.size() == 1, "page_async reads through the store")
 	var sync_page := manager.page(&"fastest", {"map": "surf_b"})
-	_check(not sync_page.ok and sync_page.error.code == DotError.CODE_UNSUPPORTED, "the synchronous form refuses a remote store")
-	var memory := DotLeaderboardManager.new()
+	_check(not sync_page.ok and sync_page.error.code == GSError.CODE_UNSUPPORTED, "the synchronous form refuses a remote store")
+	var memory := GSLeaderboardManager.new()
 	memory.report_interval = 0.0
 	add_child(memory)
-	_check(memory.store is DotLeaderboardStoreMemory, "memory stays the default")
+	_check(memory.store is GSLeaderboardStoreMemory, "memory stays the default")
 	_done()
 
 
@@ -247,31 +247,31 @@ func _test_failures() -> void:
 
 func _test_no_client() -> void:
 	_section("no client")
-	var store := DotLeaderboardStoreBackbone.new()
+	var store := GSLeaderboardStoreBackbone.new()
 	var res := await store.page(_board())
-	_check(not res.ok and res.error.code == DotError.CODE_STATE, "reads without a client fail with state")
+	_check(not res.ok and res.error.code == GSError.CODE_STATE, "reads without a client fail with state")
 	res = await _put(store, _board(), "ann", 1.0)
-	_check(not res.ok and res.error.code == DotError.CODE_STATE, "writes without a client fail with state")
+	_check(not res.ok and res.error.code == GSError.CODE_STATE, "writes without a client fail with state")
 	_check(not (await store.stats_for(&"a")).ok, "statistics are unsupported")
 	_done()
 
 
 func _test_key_split() -> void:
 	_section("key split")
-	var parts := DotLeaderboardStoreBackbone.split_key("fastest|map=a;style=b")
+	var parts := GSLeaderboardStoreBackbone.split_key("fastest|map=a;style=b")
 	_check(parts["board"] == "fastest" and parts["scope"] == {"map": "a", "style": "b"}, "scope parsed")
-	_check(DotLeaderboardStoreBackbone.split_key("plain")["scope"] == {}, "unscoped key has an empty scope")
+	_check(GSLeaderboardStoreBackbone.split_key("plain")["scope"] == {}, "unscoped key has an empty scope")
 	_done()
 
 
 func _test_fake_site() -> void:
 	_section("in-process fake site")
-	var site := DotLeaderboardFakeSite.new(get_tree())
+	var site := GSLeaderboardFakeSite.new(get_tree())
 	var board := _board()
-	var store := DotLeaderboardStoreBackbone.with_client(site)
+	var store := GSLeaderboardStoreBackbone.with_client(site)
 
 	var early := await _put(store, board, "ann", 5.0)
-	_check(not early.ok and early.error.code == DotError.CODE_INVALID, "a submit before the declare is refused")
+	_check(not early.ok and early.error.code == GSError.CODE_INVALID, "a submit before the declare is refused")
 	_check((await store.declare(board)).ok, "declare succeeds")
 	_check((await _put(store, board, "ann", 12.0)).ok and (await _put(store, board, "bob", 9.0)).ok, "submits after the declare succeed")
 	var page := await store.page(board, 0, 10)
@@ -284,7 +284,7 @@ func _test_fake_site() -> void:
 	var elsewhere := await store.page(other)
 	_check(elsewhere.ok == false and elsewhere.error.http_status == 404, "a board in another scope is a different board")
 
-	var scored := DotLeaderboardDef.make(&"kills", DotLeaderboardDef.Kind.SCORE)
+	var scored := GSLeaderboardDef.make(&"kills", GSLeaderboardDef.Kind.SCORE)
 	scored.publish = true
 	await store.declare(scored)
 	await _put(store, scored, "ann", 3.0)
@@ -311,7 +311,7 @@ func _test_fake_site() -> void:
 	_check(not (await store.page(board)).ok, "force_status fails every call")
 	site.force_status = 0
 
-	var manager := DotLeaderboardManager.new()
+	var manager := GSLeaderboardManager.new()
 	manager.backend = "backbone"
 	manager.backbone_client = site
 	manager.report_interval = 0.0

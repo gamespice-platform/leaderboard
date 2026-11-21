@@ -11,20 +11,20 @@ Read the family [CLAUDE.md](../../CLAUDE.md) first; this file is only what is sp
 | Read | Before |
 | --- | --- |
 | [docs/README.md](docs/README.md) | the index |
-| [docs/design.md](docs/design.md) | `DotLeaderboardDef`, `DotLeaderboardEntry`, `DotStatSet`, `DotLeaderboardManager` |
-| [docs/storage.md](docs/storage.md) | any `DotLeaderboardStore`, `DotLeaderboardSqlSchema`, the `_async` forms |
-| [docs/backbone.md](docs/backbone.md) | `DotLeaderboardReporter`, anything the site receives |
+| [docs/design.md](docs/design.md) | `GSLeaderboardDef`, `GSLeaderboardEntry`, `GSStatSet`, `GSLeaderboardManager` |
+| [docs/storage.md](docs/storage.md) | any `GSLeaderboardStore`, `GSLeaderboardSqlSchema`, the `_async` forms |
+| [docs/backbone.md](docs/backbone.md) | `GSLeaderboardReporter`, anything the site receives |
 | [docs/history.md](docs/history.md) | the bugs, and how each looked |
 
 ## Layout
 
 | Path | What |
 | --- | --- |
-| `addons/dot_leaderboard/core/` | `DotLeaderboardDef` (ordering, scope, rendering), `DotLeaderboardEntry`, `DotStatSet` (per-player counters; not a board) |
-| `addons/dot_leaderboard/store/` | `DotLeaderboardStore` (abstract), backbone (the site's `/api/integration/v1/leaderboard/*`: top, around-me, rank; remote, `_async` only; the manager skips its reporter for it), memory (sorted on write, ranks materialised), SQL (SQLite, Postgres, MySQL via dot-sql), `DotLeaderboardSqlSchema` |
-| `addons/dot_leaderboard/net/` | `DotLeaderboardReporter`: batches, queues and retries to the backbone |
-| `addons/dot_leaderboard/runtime/` | `DotLeaderboardManager`: boards, store and reporter; the node a game adds |
-| `addons/dot_leaderboard/testing/` | `DotLeaderboardFakeSite`: the in-process fake site for tests (`post_integration`/`get_integration`, one frame of latency, declare-before-submit, optional scope checks); games use it, never their own copy |
+| `addons/dot_leaderboard/core/` | `GSLeaderboardDef` (ordering, scope, rendering), `GSLeaderboardEntry`, `GSStatSet` (per-player counters; not a board) |
+| `addons/dot_leaderboard/store/` | `GSLeaderboardStore` (abstract), backbone (the site's `/api/integration/v1/leaderboard/*`: top, around-me, rank; remote, `_async` only; the manager skips its reporter for it), memory (sorted on write, ranks materialised), SQL (SQLite, Postgres, MySQL via dot-sql), `GSLeaderboardSqlSchema` |
+| `addons/dot_leaderboard/net/` | `GSLeaderboardReporter`: batches, queues and retries to the backbone |
+| `addons/dot_leaderboard/runtime/` | `GSLeaderboardManager`: boards, store and reporter; the node a game adds |
+| `addons/dot_leaderboard/testing/` | `GSLeaderboardFakeSite`: the in-process fake site for tests (`post_integration`/`get_integration`, one frame of latency, declare-before-submit, optional scope checks); games use it, never their own copy |
 | `examples/leaderboard_backbone_test.tscn` | the backbone store against the fake site, over TCP through GameSpice Auth's client and in-process |
 | `examples/leaderboard_selftest.tscn` | the suite (the SQL store through GameSpice SQL's recording driver) |
 | `examples/leaderboard_sql_live.tscn` | the SQL store against real databases |
@@ -37,9 +37,9 @@ Read the family [CLAUDE.md](../../CLAUDE.md) first; this file is only what is sp
 
 ## Rules that bite
 
-- A board is one `DotLeaderboardDef` with a `Kind`, a string-keyed `scope` and rendering; never fixed scope columns. [design](docs/design.md#the-one-idea)
+- A board is one `GSLeaderboardDef` with a `Kind`, a string-keyed `scope` and rendering; never fixed scope columns. [design](docs/design.md#the-one-idea)
 - `scope_key()` sorts **by text** (`sort_custom` on `str`, never `sort()`: StringName keys sort by interning); `to_dictionary()` copies its dictionaries. Both have a guard in the suite. [design](docs/design.md#the-one-idea)
-- `DotStatSet` is additive; `set_best`/`set_lowest` are methods, not a flag; `from_dictionary` drops non-numbers. [design](docs/design.md#boards-and-statistics-are-different-problems)
+- `GSStatSet` is additive; `set_best`/`set_lowest` are methods, not a flag; `from_dictionary` drops non-numbers. [design](docs/design.md#boards-and-statistics-are-different-problems)
 - The manager owns ordering and improvement; a store writes what it is given and judges nothing. [design](docs/design.md#why-the-manager-sorts-and-the-store-does-not)
 - Ties share a rank (1, 2, 2, 4) in both stores; player id breaks a tie only for paging. [design](docs/design.md#why-the-manager-sorts-and-the-store-does-not)
 - The manager refuses a non-finite value and an undefined board, and nothing else. [design](docs/design.md#why-the-manager-sorts-and-the-store-does-not)
@@ -55,17 +55,17 @@ Read the family [CLAUDE.md](../../CLAUDE.md) first; this file is only what is sp
 
 | To change | Where |
 | --- | --- |
-| Where entries live | `DotLeaderboardStore` subclass on `DotLeaderboardManager.store`; `DotLeaderboardStoreSql` for a database; `DotLeaderboardStoreBackbone` (or `backend = "backbone"` plus `backbone_client`) for the site's own boards |
-| What a board measures and how it sorts | `DotLeaderboardDef.Kind` |
-| What a board is per | `DotLeaderboardDef.scope`, and `scoped()` per instance |
+| Where entries live | `GSLeaderboardStore` subclass on `GSLeaderboardManager.store`; `GSLeaderboardStoreSql` for a database; `GSLeaderboardStoreBackbone` (or `backend = "backbone"` plus `backbone_client`) for the site's own boards |
+| What a board measures and how it sorts | `GSLeaderboardDef.Kind` |
+| What a board is per | `GSLeaderboardDef.scope`, and `scoped()` per instance |
 | How a value renders | `decimals`, `unit`, or override `format_value` |
-| Whether a board reaches the site | `DotLeaderboardDef.publish` plus the master switch |
-| Where reports go | `DotLeaderboardReporter.client`: anything with `post_integration` |
-| How often they go | `DotLeaderboardManager.report_interval` |
+| Whether a board reaches the site | `GSLeaderboardDef.publish` plus the master switch |
+| Where reports go | `GSLeaderboardReporter.client`: anything with `post_integration` |
+| How often they go | `GSLeaderboardManager.report_interval` |
 | Turning a counter into a board | `publish_stat` |
 
 ## Open
 
-- **The plain `submit`/`page`/`entry_for` are still the synchronous forms.** game-fatal-contact and game-hungario now await the `_async` forms (their suites run them against `DotLeaderboardFakeSite`), so the plain forms can become the awaited ones in a breaking release. [storage](docs/storage.md#why-there-are-_async-forms)
+- **The plain `submit`/`page`/`entry_for` are still the synchronous forms.** game-fatal-contact and game-hungario now await the `_async` forms (their suites run them against `GSLeaderboardFakeSite`), so the plain forms can become the awaited ones in a breaking release. [storage](docs/storage.md#why-there-are-_async-forms)
 
 Deliberately not here: a UI, cross-map ranking, seasons as code, reading the backbone's copy, anti-cheat. [design](docs/design.md#deliberately-not-here)

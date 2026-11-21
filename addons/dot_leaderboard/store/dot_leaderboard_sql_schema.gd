@@ -1,5 +1,5 @@
 @tool
-class_name DotLeaderboardSqlSchema
+class_name GSLeaderboardSqlSchema
 extends RefCounted
 
 ## The two leaderboard tables, their statements and their row mapping, in one place.
@@ -36,10 +36,10 @@ const STAT_COLUMNS := ["player_id", "stat_id", "amount"]
 
 ## One row per player per board.
 ##
-## - [b]`board_key` is the whole address[/b] ([method DotLeaderboardDef.key]: id plus the
+## - [b]`board_key` is the whole address[/b] ([method GSLeaderboardDef.key]: id plus the
 ##   sorted scope), not an id and a scope in separate columns. The scope is open-ended string
 ##   keys — a timer has three, a deathmatch two, a 2D game none — and fixed columns would be
-##   the mistake [DotLeaderboardDef] already explains. VARCHAR(191) on MySQL; a key past that
+##   the mistake [GSLeaderboardDef] already explains. VARCHAR(191) on MySQL; a key past that
 ##   is a scope nobody should be building.
 ## - [b]The `(board_key, score)` index is the board.[/b] A page is a range scan of it, and
 ##   a rank is a count over it, so neither sorts the table per request.
@@ -63,7 +63,7 @@ static func entries_spec(table: String = DEFAULT_ENTRIES_TABLE) -> Dictionary:
 	}
 
 
-## One row per player per counter. Additive, like [DotStatSet].
+## One row per player per counter. Additive, like [GSStatSet].
 static func stats_spec(table: String = DEFAULT_STATS_TABLE) -> Dictionary:
 	return {
 		"name": table,
@@ -94,7 +94,7 @@ static func migration_steps(
 ## is the same answer and costs a range scan per row of a page.
 ##
 ## [b]Ties share a rank[/b] (1, 2, 2, 4), because two identical values are a tie — see
-## [member DotLeaderboardEntry.set_at] for why the older one is not awarded first. The
+## [member GSLeaderboardEntry.set_at] for why the older one is not awarded first. The
 ## ORDER BY breaks a tie by player id only so that a page boundary is stable; it is not a
 ## ranking rule.
 ##
@@ -148,7 +148,7 @@ static func add_stat(table: String, dialect: int) -> String:
 
 
 ## An entry as bound parameters, in [constant ENTRY_COLUMNS] order.
-static func entry_to_row(entry: DotLeaderboardEntry) -> Array:
+static func entry_to_row(entry: GSLeaderboardEntry) -> Array:
 	return [
 		entry.board_key,
 		String(entry.player_id),
@@ -165,12 +165,12 @@ static func entry_to_row(entry: DotLeaderboardEntry) -> Array:
 ## Numbers may arrive as floats (the gateway speaks JSON, which has one number type) or as
 ## strings (some drivers return a DOUBLE as text), so every one is converted rather than
 ## trusted.
-static func entry_from_row(row: Variant) -> DotLeaderboardEntry:
+static func entry_from_row(row: Variant) -> GSLeaderboardEntry:
 	if not (row is Dictionary):
 		return null
 
 	var values := row as Dictionary
-	var entry := DotLeaderboardEntry.new()
+	var entry := GSLeaderboardEntry.new()
 	entry.board_key = str(values.get("board_key", ""))
 	entry.player_id = StringName(str(values.get("player_id", "")))
 	var name_value: Variant = values.get("player_name")

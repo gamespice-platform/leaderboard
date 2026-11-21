@@ -1,5 +1,5 @@
 @tool
-class_name DotLeaderboardDef
+class_name GSLeaderboardDef
 extends Resource
 
 ## One board: what it measures, how it sorts, and what it is scoped to.
@@ -79,15 +79,15 @@ enum Kind {
 ##
 ## For a running total that can go DOWN — a ranking total re-scored when somebody else
 ## beats a record — where "keep the best" would freeze a player at the highest total they
-## ever had. Written with [method DotLeaderboardManager.replace_async], and reported to the
+## ever had. Written with [method GSLeaderboardManager.replace_async], and reported to the
 ## backbone with its `overwrite` flag, which the site's submit takes per request.
 @export var running_total: bool = false
 
 
 static func make(
 	p_id: StringName, p_kind: Kind, p_scope: Dictionary = {}
-) -> DotLeaderboardDef:
-	var board := DotLeaderboardDef.new()
+) -> GSLeaderboardDef:
+	var board := GSLeaderboardDef.new()
 	board.id = p_id
 	board.kind = p_kind
 	board.scope = p_scope
@@ -172,19 +172,19 @@ static func _format_time(seconds: float) -> String:
 	return ("-" if negative else "") + text
 
 
-func validate() -> DotResult:
+func validate() -> GSResult:
 	if id == &"":
-		return DotResult.fail(DotError.CODE_INVALID, "A board needs an id.")
+		return GSResult.fail(GSError.CODE_INVALID, "A board needs an id.")
 
 	for key in scope:
 		if not (key is String or key is StringName):
-			return DotResult.fail(
-				DotError.CODE_INVALID,
+			return GSResult.fail(
+				GSError.CODE_INVALID,
 				"A board's scope keys must be strings.",
 				str(key)
 			)
 
-	return DotResult.success(null)
+	return GSResult.success(null)
 
 
 func to_dictionary() -> Dictionary:
@@ -209,8 +209,8 @@ func to_dictionary() -> Dictionary:
 	}
 
 
-static func from_dictionary(data: Dictionary) -> DotLeaderboardDef:
-	var board := DotLeaderboardDef.new()
+static func from_dictionary(data: Dictionary) -> GSLeaderboardDef:
+	var board := GSLeaderboardDef.new()
 
 	board.id = StringName(str(data.get("id", "")))
 	board.display_name = str(data.get("name", ""))
@@ -238,7 +238,7 @@ static func from_dictionary(data: Dictionary) -> DotLeaderboardDef:
 static func to_site_defs(boards: Array, game: int = 0) -> Dictionary:
 	var rows: Array = []
 	for board in boards:
-		var b := board as DotLeaderboardDef
+		var b := board as GSLeaderboardDef
 		if b == null:
 			continue
 		var scope := {}
@@ -269,8 +269,8 @@ static func _to_kind(value: Variant) -> Kind:
 ##
 ## The usual case: one definition of "fastest time", instantiated per map, track and
 ## style. Copying rather than mutating means the definition can be a shared resource.
-func scoped(extra: Dictionary) -> DotLeaderboardDef:
-	var out := DotLeaderboardDef.from_dictionary(to_dictionary())
+func scoped(extra: Dictionary) -> GSLeaderboardDef:
+	var out := GSLeaderboardDef.from_dictionary(to_dictionary())
 
 	for key in extra:
 		out.scope[str(key)] = str(extra[key])
@@ -288,4 +288,4 @@ func describe() -> Dictionary:
 
 
 func _to_string() -> String:
-	return "DotLeaderboardDef(%s)" % key()
+	return "GSLeaderboardDef(%s)" % key()

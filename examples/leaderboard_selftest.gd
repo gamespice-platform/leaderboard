@@ -22,7 +22,7 @@ const SECTIONS := 14
 
 
 func _ready() -> void:
-	DotLog.set_level(DotLog.Level.ERROR)
+	GSLog.set_level(GSLog.Level.ERROR)
 	_run.call_deferred()
 
 
@@ -75,36 +75,36 @@ func _run() -> void:
 func _test_definitions() -> void:
 	_section("board definitions")
 
-	var board := DotLeaderboardDef.make(
-		&"fastest", DotLeaderboardDef.Kind.TIME, {"map": "surf_beginner"}
+	var board := GSLeaderboardDef.make(
+		&"fastest", GSLeaderboardDef.Kind.TIME, {"map": "surf_beginner"}
 	)
 
 	_check(board.validate().ok, "a board validates")
 	_check(board.lower_is_better(), "a time board is lower-is-better")
 	_check(board.decimals == 3, "and defaults to three decimals")
-	var site := DotLeaderboardDef.to_site_defs([board])
+	var site := GSLeaderboardDef.to_site_defs([board])
 	var row: Dictionary = (site["boards"] as Array)[0]
 	_check(site["format"] == "dot-leaderboard-defs" and not site.has("game"), "the site document names its format and leaves the app id out")
 	_check(row["key"] == "fastest" and row["kind"] == "TIME" and row["scope"] == {"map": "surf_beginner"}, "an exported board carries key, kind name and scope")
 	_check(row["name"] == "fastest", "a board without a name is labelled by its id")
 
-	var score := DotLeaderboardDef.make(&"kills", DotLeaderboardDef.Kind.SCORE)
+	var score := GSLeaderboardDef.make(&"kills", GSLeaderboardDef.Kind.SCORE)
 	_check(not score.lower_is_better(), "a score board is higher-is-better")
 	_check(score.decimals == 0, "and to none")
 
-	var penalty := DotLeaderboardDef.make(&"deaths", DotLeaderboardDef.Kind.PENALTY)
+	var penalty := GSLeaderboardDef.make(&"deaths", GSLeaderboardDef.Kind.PENALTY)
 	_check(penalty.lower_is_better(), "a penalty board is lower-is-better")
 
-	var nameless := DotLeaderboardDef.new()
+	var nameless := GSLeaderboardDef.new()
 	_check(not nameless.validate().ok, "a board with no id is refused")
 
 	# The round trip, and the enum guard against a hostile value.
-	var back := DotLeaderboardDef.from_dictionary(board.to_dictionary())
+	var back := GSLeaderboardDef.from_dictionary(board.to_dictionary())
 	_check(back.key() == board.key(), "a board round-trips through a dictionary")
 
-	var junk := DotLeaderboardDef.from_dictionary({"id": "x", "kind": 99})
+	var junk := GSLeaderboardDef.from_dictionary({"id": "x", "kind": 99})
 	_check(
-		junk.kind == DotLeaderboardDef.Kind.SCORE,
+		junk.kind == GSLeaderboardDef.Kind.SCORE,
 		"an out-of-range kind falls back rather than becoming a number nothing handles"
 	)
 
@@ -125,23 +125,23 @@ func _test_scope_key_is_canonical() -> void:
 	# The bug this prevents: GDScript iterates a dictionary in insertion order, so
 	# two callers building the same scope in different orders would address two
 	# boards holding half the entries each — and nothing anywhere would error.
-	var a := DotLeaderboardDef.make(&"fastest", DotLeaderboardDef.Kind.TIME, {
+	var a := GSLeaderboardDef.make(&"fastest", GSLeaderboardDef.Kind.TIME, {
 		"map": "surf_beginner", "track": "0", "style": "normal",
 	})
-	var b := DotLeaderboardDef.make(&"fastest", DotLeaderboardDef.Kind.TIME, {
+	var b := GSLeaderboardDef.make(&"fastest", GSLeaderboardDef.Kind.TIME, {
 		"style": "normal", "map": "surf_beginner", "track": "0",
 	})
 
 	_check(a.key() == b.key(), "two orderings of one scope give one key",
 		"%s vs %s" % [a.key(), b.key()])
 
-	var different := DotLeaderboardDef.make(&"fastest", DotLeaderboardDef.Kind.TIME, {
+	var different := GSLeaderboardDef.make(&"fastest", GSLeaderboardDef.Kind.TIME, {
 		"map": "surf_beginner", "track": "1", "style": "normal",
 	})
 
 	_check(a.key() != different.key(), "and a different scope a different one")
 
-	var unscoped := DotLeaderboardDef.make(&"kills", DotLeaderboardDef.Kind.SCORE)
+	var unscoped := GSLeaderboardDef.make(&"kills", GSLeaderboardDef.Kind.SCORE)
 	_check(unscoped.key() == "kills", "an unscoped board is just its id")
 
 	# validate() admits StringName keys, and Godot sorts StringNames by where they
@@ -150,10 +150,10 @@ func _test_scope_key_is_canonical() -> void:
 	# StringNames. The key is pinned: it is the database's and the site's address.
 	var pinned := "fastest|map=surf_beginner;style=normal;track=0"
 	_check(a.key() == pinned, "the key is the scope sorted by text", a.key())
-	var names := DotLeaderboardDef.make(&"fastest", DotLeaderboardDef.Kind.TIME, {
+	var names := GSLeaderboardDef.make(&"fastest", GSLeaderboardDef.Kind.TIME, {
 		&"track": "0", &"style": "normal", &"map": "surf_beginner",
 	})
-	var mixed := DotLeaderboardDef.make(&"fastest", DotLeaderboardDef.Kind.TIME, {
+	var mixed := GSLeaderboardDef.make(&"fastest", GSLeaderboardDef.Kind.TIME, {
 		"track": "0", &"map": "surf_beginner", "style": "normal",
 	})
 	_check(names.key() == pinned and mixed.key() == pinned,
@@ -167,7 +167,7 @@ func _test_scope_key_is_canonical() -> void:
 		for _j in range(6):
 			k += char(97 + rng.randi() % 26)
 		wide[StringName(k)] = "x"
-	var listed := Array(DotLeaderboardDef.make(&"w", DotLeaderboardDef.Kind.SCORE, wide)
+	var listed := Array(GSLeaderboardDef.make(&"w", GSLeaderboardDef.Kind.SCORE, wide)
 		.scope_key().split(";"))
 	var by_text := listed.duplicate()
 	by_text.sort()
@@ -178,12 +178,12 @@ func _test_scope_key_is_canonical() -> void:
 func _test_ordering() -> void:
 	_section("ordering")
 
-	var time := DotLeaderboardDef.make(&"t", DotLeaderboardDef.Kind.TIME)
+	var time := GSLeaderboardDef.make(&"t", GSLeaderboardDef.Kind.TIME)
 	_check(time.beats(9.0, 10.0), "a faster time beats a slower one")
 	_check(not time.beats(10.0, 9.0), "and not the other way")
 	_check(not time.beats(9.0, 9.0), "and a tie is not an improvement")
 
-	var score := DotLeaderboardDef.make(&"s", DotLeaderboardDef.Kind.SCORE)
+	var score := GSLeaderboardDef.make(&"s", GSLeaderboardDef.Kind.SCORE)
 	_check(score.beats(10.0, 9.0), "a higher score beats a lower one")
 	_check(not score.beats(9.0, 10.0), "and not the other way")
 	_done()
@@ -192,11 +192,11 @@ func _test_ordering() -> void:
 func _test_formatting() -> void:
 	_section("formatting")
 
-	var time := DotLeaderboardDef.make(&"t", DotLeaderboardDef.Kind.TIME)
+	var time := GSLeaderboardDef.make(&"t", GSLeaderboardDef.Kind.TIME)
 	_check(time.format_value(83.456) == "1:23.456", "a time renders as a time")
 	_check(time.format_value(3723.5) == "1:02:03.500", "and past an hour")
 
-	var speed := DotLeaderboardDef.make(&"s", DotLeaderboardDef.Kind.POINTS)
+	var speed := GSLeaderboardDef.make(&"s", GSLeaderboardDef.Kind.POINTS)
 	speed.decimals = 1
 	speed.unit = "m/s"
 	_check(speed.format_value(12.34) == "12.3 m/s", "and a value renders with its unit")
@@ -209,32 +209,32 @@ func _test_submitting() -> void:
 	_section("submitting")
 
 	var manager := _manager()
-	manager.define(DotLeaderboardDef.make(&"fastest", DotLeaderboardDef.Kind.TIME))
+	manager.define(GSLeaderboardDef.make(&"fastest", GSLeaderboardDef.Kind.TIME))
 
 	var scope := {"map": "surf_beginner"}
 
-	var first: DotResult = await manager.submit(
+	var first: GSResult = await manager.submit(
 		&"fastest", scope, &"alice", "Alice", 30.0
 	)
 	_check(first.ok, "a first entry is accepted")
 
-	var slower: DotResult = await manager.submit(
+	var slower: GSResult = await manager.submit(
 		&"fastest", scope, &"alice", "Alice", 35.0
 	)
 	_check(slower.ok, "a worse one is not an error")
 	_check(
-		slower.value is DotLeaderboardEntry
-			and (slower.value as DotLeaderboardEntry).value == 30.0,
+		slower.value is GSLeaderboardEntry
+			and (slower.value as GSLeaderboardEntry).value == 30.0,
 		"and reports the entry it did not beat"
 	)
 
-	var page: DotResult = await manager.page(&"fastest", scope)
+	var page: GSResult = await manager.page(&"fastest", scope)
 	_check((page.value as Array).size() == 1, "the board still has one row")
 
 	await manager.submit(&"fastest", scope, &"alice", "Alice", 25.0)
 	page = await manager.page(&"fastest", scope)
 	_check(
-		(page.value[0] as DotLeaderboardEntry).value == 25.0,
+		(page.value[0] as GSLeaderboardEntry).value == 25.0,
 		"and a better one replaces it"
 	)
 
@@ -254,43 +254,43 @@ func _test_ranks() -> void:
 	_section("ranks")
 
 	var manager := _manager()
-	manager.define(DotLeaderboardDef.make(&"fastest", DotLeaderboardDef.Kind.TIME))
-	manager.define(DotLeaderboardDef.make(&"kills", DotLeaderboardDef.Kind.SCORE))
+	manager.define(GSLeaderboardDef.make(&"fastest", GSLeaderboardDef.Kind.TIME))
+	manager.define(GSLeaderboardDef.make(&"kills", GSLeaderboardDef.Kind.SCORE))
 
 	for row in [[&"alice", 30.0], [&"bob", 20.0], [&"carol", 40.0]]:
 		await manager.submit(&"fastest", {}, row[0], String(row[0]), row[1])
 
-	var page: DotResult = await manager.page(&"fastest", {})
+	var page: GSResult = await manager.page(&"fastest", {})
 	var rows: Array = page.value
 
 	_check(rows.size() == 3, "three entries")
 	_check(
-		(rows[0] as DotLeaderboardEntry).player_id == &"bob",
+		(rows[0] as GSLeaderboardEntry).player_id == &"bob",
 		"sorted fastest first",
 		str(rows.map(func(e): return String(e.player_id)))
 	)
-	_check((rows[0] as DotLeaderboardEntry).rank == 1, "with ranks written")
-	_check((rows[2] as DotLeaderboardEntry).rank == 3, "all the way down")
+	_check((rows[0] as GSLeaderboardEntry).rank == 1, "with ranks written")
+	_check((rows[2] as GSLeaderboardEntry).rank == 3, "all the way down")
 
 	# A score board sorts the other way, which is the whole reason the manager does
 	# the sorting rather than the store.
 	for row in [[&"alice", 30.0], [&"bob", 20.0], [&"carol", 40.0]]:
 		await manager.submit(&"kills", {}, row[0], String(row[0]), row[1])
 
-	var scores: DotResult = await manager.page(&"kills", {})
+	var scores: GSResult = await manager.page(&"kills", {})
 	_check(
-		((scores.value as Array)[0] as DotLeaderboardEntry).player_id == &"carol",
+		((scores.value as Array)[0] as GSLeaderboardEntry).player_id == &"carol",
 		"and a score board sorts highest first"
 	)
 
-	var mine: DotResult = await manager.entry_for(&"fastest", {}, &"carol")
+	var mine: GSResult = await manager.entry_for(&"fastest", {}, &"carol")
 	_check(
-		mine.value is DotLeaderboardEntry
-			and (mine.value as DotLeaderboardEntry).rank == 3,
+		mine.value is GSLeaderboardEntry
+			and (mine.value as GSLeaderboardEntry).rank == 3,
 		"a player's own entry carries their rank"
 	)
 
-	var absent: DotResult = await manager.entry_for(&"fastest", {}, &"nobody")
+	var absent: GSResult = await manager.entry_for(&"fastest", {}, &"nobody")
 	_check(
 		absent.ok and absent.value == null,
 		"and an absent one is a success carrying null, not a failure"
@@ -317,7 +317,7 @@ func _test_refusals() -> void:
 	_section("refusals")
 
 	var manager := _manager()
-	manager.define(DotLeaderboardDef.make(&"fastest", DotLeaderboardDef.Kind.TIME))
+	manager.define(GSLeaderboardDef.make(&"fastest", GSLeaderboardDef.Kind.TIME))
 
 	var refusals := PackedStringArray()
 	manager.entry_refused.connect(
@@ -325,26 +325,26 @@ func _test_refusals() -> void:
 			refusals.append(reason)
 	)
 
-	var unknown: DotResult = await manager.submit(
+	var unknown: GSResult = await manager.submit(
 		&"nonexistent", {}, &"alice", "Alice", 1.0
 	)
 	_check(not unknown.ok, "an unknown board is refused")
 
 	# A NaN on a board can never be displaced: every `beats` test against it is
 	# false, so nothing ever replaces it. Cheap to refuse; unfixable afterwards.
-	var nan_result: DotResult = await manager.submit(
+	var nan_result: GSResult = await manager.submit(
 		&"fastest", {}, &"alice", "Alice", NAN
 	)
 	_check(not nan_result.ok, "and so is a NaN")
 
-	var inf_result: DotResult = await manager.submit(
+	var inf_result: GSResult = await manager.submit(
 		&"fastest", {}, &"alice", "Alice", INF
 	)
 	_check(not inf_result.ok, "and an infinity")
 
 	_check(refusals.size() == 3, "each refusal is announced", str(refusals))
 
-	var page: DotResult = await manager.page(&"fastest", {})
+	var page: GSResult = await manager.page(&"fastest", {})
 	_check((page.value as Array).is_empty(), "and nothing reached the board")
 
 	manager.queue_free()
@@ -356,7 +356,7 @@ func _test_refusals() -> void:
 func _test_stats() -> void:
 	_section("statistics")
 
-	var set := DotStatSet.new()
+	var set := GSStatSet.new()
 	set.add(&"kills", 3.0)
 	set.add(&"kills")
 	set.add(&"distance", 120.5)
@@ -372,7 +372,7 @@ func _test_stats() -> void:
 	set.set_lowest(&"best_time", 25.0)
 	_check(set.get_value(&"best_time") == 25.0, "and a lowest the lower one")
 
-	var session := DotStatSet.new()
+	var session := GSStatSet.new()
 	session.add(&"kills", 2.0)
 
 	set.add_from(session)
@@ -380,30 +380,30 @@ func _test_stats() -> void:
 
 	# Non-numeric values are dropped rather than coerced: float("banana") is 0.0,
 	# which silently resets a counter instead of leaving it alone.
-	var loaded := DotStatSet.from_dictionary({
+	var loaded := GSStatSet.from_dictionary({
 		"kills": 5, "distance": 12.5, "name": "alice", "nested": {},
 	})
 	_check(loaded.size() == 2, "loading drops non-numeric values", "%d" % loaded.size())
 	_check(loaded.get_value(&"kills") == 5.0, "and keeps the numbers")
 
 	var manager := _manager()
-	var totals: DotResult = await manager.add_stats(&"alice", set)
+	var totals: GSResult = await manager.add_stats(&"alice", set)
 	_check(totals.ok, "a store accumulates them")
 
-	var again := DotStatSet.new()
+	var again := GSStatSet.new()
 	again.add(&"kills", 1.0)
 	await manager.add_stats(&"alice", again)
 
-	var read: DotResult = await manager.stats_for(&"alice")
+	var read: GSResult = await manager.stats_for(&"alice")
 	_check(
-		(read.value as DotStatSet).get_value(&"kills") == 7.0,
+		(read.value as GSStatSet).get_value(&"kills") == 7.0,
 		"across calls",
-		"%.1f" % (read.value as DotStatSet).get_value(&"kills")
+		"%.1f" % (read.value as GSStatSet).get_value(&"kills")
 	)
 
-	var empty: DotResult = await manager.stats_for(&"nobody")
+	var empty: GSResult = await manager.stats_for(&"nobody")
 	_check(
-		empty.ok and empty.value is DotStatSet,
+		empty.ok and empty.value is GSStatSet,
 		"and a player with none reads as an empty set rather than null"
 	)
 
@@ -415,33 +415,33 @@ func _test_publish_stat() -> void:
 	_section("a counter becomes a board")
 
 	var manager := _manager()
-	manager.define(DotLeaderboardDef.make(&"most_kills", DotLeaderboardDef.Kind.SCORE))
+	manager.define(GSLeaderboardDef.make(&"most_kills", GSLeaderboardDef.Kind.SCORE))
 
-	var alice := DotStatSet.new()
+	var alice := GSStatSet.new()
 	alice.add(&"kills", 12.0)
 	await manager.add_stats(&"alice", alice)
 
-	var bob := DotStatSet.new()
+	var bob := GSStatSet.new()
 	bob.add(&"kills", 30.0)
 	await manager.add_stats(&"bob", bob)
 
 	await manager.publish_stat(&"most_kills", {}, &"alice", "Alice", &"kills")
 	await manager.publish_stat(&"most_kills", {}, &"bob", "Bob", &"kills")
 
-	var page: DotResult = await manager.page(&"most_kills", {})
+	var page: GSResult = await manager.page(&"most_kills", {})
 	var rows: Array = page.value
 
 	_check(rows.size() == 2, "both players are on the board")
 	_check(
-		(rows[0] as DotLeaderboardEntry).player_id == &"bob",
+		(rows[0] as GSLeaderboardEntry).player_id == &"bob",
 		"highest first"
 	)
 	_check(
-		(rows[0] as DotLeaderboardEntry).value == 30.0,
+		(rows[0] as GSLeaderboardEntry).value == 30.0,
 		"with the counter's own total, not a value passed in"
 	)
 
-	var missing: DotResult = await manager.publish_stat(
+	var missing: GSResult = await manager.publish_stat(
 		&"most_kills", {}, &"carol", "Carol", &"kills"
 	)
 	_check(
@@ -455,21 +455,21 @@ func _test_publish_stat() -> void:
 
 # --- Reporting -------------------------------------------------------------
 
-## A stand-in for GameSpice Auth's DotBackboneClient, which this addon never names.
+## A stand-in for GameSpice Auth's GSBackboneClient, which this addon never names.
 class FakeBackbone extends RefCounted:
 	var calls: Array[Dictionary] = []
 	var fail: bool = false
 	var status: int = 500
 
-	func post_integration(path: String, body: Dictionary) -> DotResult:
+	func post_integration(path: String, body: Dictionary) -> GSResult:
 		calls.append({"path": path, "body": body})
 
 		if fail:
-			var error := DotError.make(DotError.CODE_HTTP, "backbone is down")
+			var error := GSError.make(GSError.CODE_HTTP, "backbone is down")
 			error.http_status = status
-			return DotResult.failure(error)
+			return GSResult.failure(error)
 
-		return DotResult.success({"ok": true})
+		return GSResult.success({"ok": true})
 
 
 func _test_reporter_keeps_its_queue() -> void:
@@ -481,7 +481,7 @@ func _test_reporter_keeps_its_queue() -> void:
 	var backbone := FakeBackbone.new()
 	manager.reporter.client = backbone
 
-	var board := DotLeaderboardDef.make(&"fastest", DotLeaderboardDef.Kind.TIME)
+	var board := GSLeaderboardDef.make(&"fastest", GSLeaderboardDef.Kind.TIME)
 	board.publish = true
 	manager.define(board)
 
@@ -494,7 +494,7 @@ func _test_reporter_keeps_its_queue() -> void:
 		"%d" % manager.reporter.queued())
 
 	backbone.fail = true
-	var failed: DotResult = await manager.reporter.flush()
+	var failed: GSResult = await manager.reporter.flush()
 
 	_check(not failed.ok, "a flush against a dead backbone fails")
 	_check(
@@ -504,7 +504,7 @@ func _test_reporter_keeps_its_queue() -> void:
 	)
 
 	backbone.fail = false
-	var flushed: DotResult = await manager.reporter.flush()
+	var flushed: GSResult = await manager.reporter.flush()
 
 	_check(flushed.ok and int(flushed.value) == 5, "and a later flush sends them all")
 	_check(manager.reporter.queued() == 0, "leaving the queue empty")
@@ -515,7 +515,7 @@ func _test_reporter_keeps_its_queue() -> void:
 		"in one request rather than five"
 	)
 	_check(
-		str(backbone.calls[0]["path"]) == DotLeaderboardReporter.SUBMIT_PATH,
+		str(backbone.calls[0]["path"]) == GSLeaderboardReporter.SUBMIT_PATH,
 		"to the submit endpoint"
 	)
 
@@ -528,11 +528,11 @@ func _test_reporter_keeps_its_queue() -> void:
 		"and the kind by its name", str(first.get("kind")))
 	for key in ["board", "player", "name", "value"]:
 		_check(first.has(key), "and `%s`" % key)
-	var wire := DotLeaderboardReporter.wire_definition(
-		DotLeaderboardDef.make(&"fastest", DotLeaderboardDef.Kind.TIME)
+	var wire := GSLeaderboardReporter.wire_definition(
+		GSLeaderboardDef.make(&"fastest", GSLeaderboardDef.Kind.TIME)
 	)
 	_check(wire.has("key") and not wire.has("id") and wire["kind"] == "TIME", "a definition goes out under `key`, by kind name")
-	_check(DotLeaderboardDef.kind_name(DotLeaderboardDef.Kind.PENALTY) == "PENALTY", "every kind has a name")
+	_check(GSLeaderboardDef.kind_name(GSLeaderboardDef.Kind.PENALTY) == "PENALTY", "every kind has a name")
 
 	manager.queue_free()
 	_done()
@@ -541,16 +541,16 @@ func _test_reporter_keeps_its_queue() -> void:
 func _test_reporter_bounds_its_queue() -> void:
 	_section("the queue is bounded")
 
-	var reporter := DotLeaderboardReporter.new()
+	var reporter := GSLeaderboardReporter.new()
 	reporter.queue_limit = 10
 
-	var board := DotLeaderboardDef.make(&"fastest", DotLeaderboardDef.Kind.TIME)
+	var board := GSLeaderboardDef.make(&"fastest", GSLeaderboardDef.Kind.TIME)
 	board.publish = true
 
 	for i in range(40):
 		reporter.queue_entry(
 			board,
-			DotLeaderboardEntry.make("fastest", StringName("p%d" % i), "P", float(i))
+			GSLeaderboardEntry.make("fastest", StringName("p%d" % i), "P", float(i))
 		)
 
 	_check(reporter.queued() == 10, "the queue stops at its limit")
@@ -581,13 +581,13 @@ func _test_publish_is_opt_in() -> void:
 
 	# Publishing sends player names and scores off the server, so a board that has
 	# not asked for it is not reported even with the master switch on.
-	manager.define(DotLeaderboardDef.make(&"private", DotLeaderboardDef.Kind.TIME))
+	manager.define(GSLeaderboardDef.make(&"private", GSLeaderboardDef.Kind.TIME))
 
 	await manager.submit(&"private", {}, &"alice", "Alice", 10.0)
 
 	_check(manager.reporter.queued() == 0, "an unpublished board queues nothing")
 
-	var public := DotLeaderboardDef.make(&"public", DotLeaderboardDef.Kind.TIME)
+	var public := GSLeaderboardDef.make(&"public", GSLeaderboardDef.Kind.TIME)
 	public.publish = true
 	manager.define(public)
 
@@ -604,8 +604,8 @@ func _test_publish_is_opt_in() -> void:
 		"while the master switch takes the whole server off"
 	)
 
-	var defined: DotResult = await manager.reporter.define(
-		DotLeaderboardDef.make(&"private", DotLeaderboardDef.Kind.TIME)
+	var defined: GSResult = await manager.reporter.define(
+		GSLeaderboardDef.make(&"private", GSLeaderboardDef.Kind.TIME)
 	)
 	_check(not defined.ok, "and an unpublished board cannot be declared either")
 
@@ -615,11 +615,11 @@ func _test_publish_is_opt_in() -> void:
 
 func _test_boards_config() -> void:
 	_section("the boards config takes its names from the game")
-	var config := DotBoardsConfig.for_game("airdrift")
+	var config := GSBoardsConfig.for_game("airdrift")
 	_check(config.env_prefix() == "AIRDRIFT_BOARDS_", "environment prefix is upper-case game plus _BOARDS_", config.env_prefix())
 	_check(config.cli_prefix() == "--airdrift_boards_", "command-line prefix uses underscores", config.cli_prefix())
-	_check(DotBoardsConfig.for_game("hungry", "-").cli_prefix() == "--hungry-boards-", "a hyphen separator is honoured")
-	_check(DotBoardsConfig.json_path_for("fc") == "user://fc_boards.json", "the file is user://<game>_boards.json")
+	_check(GSBoardsConfig.for_game("hungry", "-").cli_prefix() == "--hungry-boards-", "a hyphen separator is honoured")
+	_check(GSBoardsConfig.json_path_for("fc") == "user://fc_boards.json", "the file is user://<game>_boards.json")
 	_check(config.backend == "memory" and config.validate().ok, "the default is memory and valid")
 
 	config.apply_dictionary({"backend": "backbone"})
@@ -631,12 +631,12 @@ func _test_boards_config() -> void:
 	var file := FileAccess.open(path, FileAccess.WRITE)
 	file.store_string('{"backend": "backbone"}')
 	file.close()
-	var layered := DotBoardsConfig.for_game("selftest").load_layered(path)
+	var layered := GSBoardsConfig.for_game("selftest").load_layered(path)
 	_check(layered.ok, "load_layered reads the JSON file", str(layered.error) if not layered.ok else "")
 	DirAccess.remove_absolute(ProjectSettings.globalize_path(path))
 
-	var from_cli := DotBoardsConfig.for_game("selftest")
+	var from_cli := GSBoardsConfig.for_game("selftest")
 	var applied := from_cli.apply_cli()
 	_check(applied.is_empty() and from_cli.backend == "memory", "no flag leaves the default")
-	_check(DotBoardsConfig.new().env_prefix() == "", "a config with no game reads no environment")
+	_check(GSBoardsConfig.new().env_prefix() == "", "a config with no game reads no environment")
 	_done()

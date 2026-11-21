@@ -1,10 +1,10 @@
 # Reporting to the backbone
 
-`DotLeaderboardReporter`, and the site endpoints it writes to. The family's backbone rules are in [backbone.md](../../../docs/backbone.md).
+`GSLeaderboardReporter`, and the site endpoints it writes to. The family's backbone rules are in [backbone.md](../../../docs/backbone.md).
 
 ## The client is anything with `post_integration`
 
-`DotLeaderboardReporter` calls `post_integration(path, body)` on an object it is handed. That method is the generic hook GameSpice Auth's `DotBackboneClient` already exposes: it stamps `ts` (Unix **seconds**) and a `nonce`, adds the bearer header, and rate-limits locally. So everything about authenticating to the backbone stays in one place, this class does not know a token exists, and **GameSpice Auth is not a dependency**: naming `DotBackboneClient` would make this addon fail to parse without it.
+`GSLeaderboardReporter` calls `post_integration(path, body)` on an object it is handed. That method is the generic hook GameSpice Auth's `GSBackboneClient` already exposes: it stamps `ts` (Unix **seconds**) and a `nonce`, adds the bearer header, and rate-limits locally. So everything about authenticating to the backbone stays in one place, this class does not know a token exists, and **GameSpice Auth is not a dependency**: naming `GSBackboneClient` would make this addon fail to parse without it.
 
 ## Three properties, each a failure avoided
 
@@ -14,7 +14,7 @@
 
 ## Publishing is a decision
 
-**Publishing is opt-in per board**, and off by default. Publishing sends player names and scores off the server; that should be a decision somebody made, not something that happens because a default was permissive. `DotLeaderboardManager.report_to_backbone` is the master switch on top, so a server can be taken off the site's leaderboards without editing every board.
+**Publishing is opt-in per board**, and off by default. Publishing sends player names and scores off the server; that should be a decision somebody made, not something that happens because a default was permissive. `GSLeaderboardManager.report_to_backbone` is the master switch on top, so a server can be taken off the site's leaderboards without editing every board.
 
 `define()` exists separately from `submit` because a board's name, ordering and units are editorial and change without any entry changing: deriving them from the first submission means a site cannot render an empty board at all, and renaming one means waiting for somebody to play.
 
@@ -32,10 +32,10 @@ A 403 means the integration lacks the scope and will not fix itself, so the repo
 
 A `running_total` board's entries go in their own request with the site's `overwrite: true`. The site's flag is per request, so a batch is the run of queued entries that agree about it, in order.
 
-## Reading the backbone: `DotLeaderboardStoreBackbone`
+## Reading the backbone: `GSLeaderboardStoreBackbone`
 
-The reporter only writes. `DotLeaderboardStoreBackbone` is a store whose boards live on the site: `declare` (define, once per board), `put` (submit with `overwrite`, because the manager already judged improvement), `page`/`top`, `entry_for`, `rank_entry`, `around` and `count_on`, through `GET .../board` with the `LEADERBOARD_READ` scope. Select it with `DotLeaderboardManager.backend = "backbone"` and `backbone_client` (or a registered `dot_backbone_client`); memory stays the default. It is remote, so use the `_async` forms, and the manager does not also queue to the reporter. Authentication is the integration token on the client; the API takes no player token. Statistics are not on the site and stay unsupported.
+The reporter only writes. `GSLeaderboardStoreBackbone` is a store whose boards live on the site: `declare` (define, once per board), `put` (submit with `overwrite`, because the manager already judged improvement), `page`/`top`, `entry_for`, `rank_entry`, `around` and `count_on`, through `GET .../board` with the `LEADERBOARD_READ` scope. Select it with `GSLeaderboardManager.backend = "backbone"` and `backbone_client` (or a registered `dot_backbone_client`); memory stays the default. It is remote, so use the `_async` forms, and the manager does not also queue to the reporter. Authentication is the integration token on the client; the API takes no player token. Statistics are not on the site and stay unsupported.
 
-## Choosing the store: `DotBoardsConfig`
+## Choosing the store: `GSBoardsConfig`
 
-`DotBoardsConfig.for_game("fc")` is the one config every game's server uses to pick `memory` or `backbone`: `FC_BOARDS_BACKEND`, `--fc_boards_backend` (`for_game("hungry", "-")` gives `--hungry-boards-backend`), and `DotBoardsConfig.json_path_for("fc")` for the file. Call `load_layered(path)` and assign `boards.backend = config.backend`; do not copy the class into a game.
+`GSBoardsConfig.for_game("fc")` is the one config every game's server uses to pick `memory` or `backbone`: `FC_BOARDS_BACKEND`, `--fc_boards_backend` (`for_game("hungry", "-")` gives `--hungry-boards-backend`), and `GSBoardsConfig.json_path_for("fc")` for the file. Call `load_layered(path)` and assign `boards.backend = config.backend`; do not copy the class into a game.

@@ -11,7 +11,7 @@ A board orders one number per player within a scope you choose, such as map, tra
 - **Boards** with four orderings (`TIME`, `SCORE`, `POINTS`, `PENALTY`) and display that knows a time from a score.
 - **Ranks.** Ties share a rank (1, 2, 2, 4) in every store.
 - **Player statistics:** counters, bests and lowests, and any counter can become a board.
-- **Stores:** in memory, or `DotLeaderboardStoreSql` for SQLite, Postgres and MySQL/MariaDB through [GameSpice SQL](https://github.com/gamespice-platform/sql).
+- **Stores:** in memory, or `GSLeaderboardStoreSql` for SQLite, Postgres and MySQL/MariaDB through [GameSpice SQL](https://github.com/gamespice-platform/sql).
 - **A reporter** that batches submissions to the TMC backbone and keeps its queue through an outage.
 
 ## Install
@@ -21,11 +21,11 @@ Copy `addons/dot_leaderboard/` and [GameSpice Core](https://github.com/gamespice
 ## Use
 
 ```gdscript
-var boards := DotLeaderboardManager.new()
-boards.store = DotLeaderboardStoreMemory.new()
+var boards := GSLeaderboardManager.new()
+boards.store = GSLeaderboardStoreMemory.new()
 add_child(boards)
 
-var fastest := DotLeaderboardDef.make(&"fastest", DotLeaderboardDef.Kind.TIME)
+var fastest := GSLeaderboardDef.make(&"fastest", GSLeaderboardDef.Kind.TIME)
 fastest.display_name = "Fastest time"
 fastest.publish = true                # opt in to the site leaderboard
 boards.define(fastest)
@@ -45,7 +45,7 @@ for entry in page.value:
 ### Statistics
 
 ```gdscript
-var session := DotStatSet.new()
+var session := GSStatSet.new()
 session.add(&"jumps", stats.jumps)
 session.set_best(&"top_speed", stats.max_speed)
 await boards.add_stats(player_id, session)
@@ -57,7 +57,7 @@ await boards.publish_stat(&"most_jumps", {}, player_id, player_name, &"jumps")
 ### A database
 
 ```gdscript
-var store := DotLeaderboardStoreSql.new(driver)   # any dot-sql driver
+var store := GSLeaderboardStoreSql.new(driver)   # any dot-sql driver
 await store.open()                                # creates or migrates its two tables
 boards.store = store
 
@@ -71,7 +71,7 @@ Use the `_async` forms (`submit_async`, `page_async`, `entry_for_async`) with a 
 
 ```gdscript
 boards.report_to_backbone = true
-boards.reporter.client = backbone_client   # dot-auth's DotBackboneClient
+boards.reporter.client = backbone_client   # dot-auth's GSBackboneClient
 ```
 
 This needs the `LEADERBOARD_WRITE` scope on a server or app integration. Entries are queued and sent in batches, and the queue survives an outage.
@@ -82,7 +82,7 @@ This needs the `LEADERBOARD_WRITE` scope on a server or app integration. Entries
 
 | Option | Meaning |
 | --- | --- |
-| `--source` | Script with the static method that returns an array of `DotLeaderboardDef`. |
+| `--source` | Script with the static method that returns an array of `GSLeaderboardDef`. |
 | `--method` | The method name. |
 | `--out` | Output file (default `deployment/leaderboard-defs.json`). |
 | `--game` | Pin the site app id (unset by default). |

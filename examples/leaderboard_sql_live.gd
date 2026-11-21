@@ -21,13 +21,13 @@ var _failed := 0
 
 
 func _ready() -> void:
-	DotLog.set_level(DotLog.Level.ERROR)
+	GSLog.set_level(GSLog.Level.ERROR)
 
-	var dialect := DotSqlDialect.from_name((OS.get_environment("GS_SQL_DIALECT") if OS.has_environment("GS_SQL_DIALECT") else OS.get_environment("DOT_SQL_DIALECT")))
-	var made := DotSql.from_config({
+	var dialect := GSSqlDialect.from_name((OS.get_environment("GS_SQL_DIALECT") if OS.has_environment("GS_SQL_DIALECT") else OS.get_environment("DOT_SQL_DIALECT")))
+	var made := GSSql.from_config({
 		"driver": "gateway",
 		"url": (OS.get_environment("GS_SQL_URL") if OS.has_environment("GS_SQL_URL") else OS.get_environment("DOT_SQL_URL")),
-		"dialect": DotSqlDialect.name_of(dialect),
+		"dialect": GSSqlDialect.name_of(dialect),
 		"token": FileAccess.get_file_as_string((OS.get_environment("GS_SQL_TOKEN_FILE") if OS.has_environment("GS_SQL_TOKEN_FILE") else OS.get_environment("DOT_SQL_TOKEN_FILE"))).strip_edges(),
 	}, self)
 	if not made.ok or made.value == null:
@@ -35,8 +35,8 @@ func _ready() -> void:
 		get_tree().quit(2)
 		return
 
-	var driver: DotSqlDriverGateway = made.value
-	print("dot-leaderboard live: %s" % DotSqlDialect.name_of(dialect))
+	var driver: GSSqlDriverGateway = made.value
+	print("dot-leaderboard live: %s" % GSSqlDialect.name_of(dialect))
 
 	# Clean tables every run.
 	await driver.open()
@@ -44,23 +44,23 @@ func _ready() -> void:
 	await driver.execute("DROP TABLE IF EXISTS %s" % STATS)
 	await driver.execute("DELETE FROM dot_sql_migrations WHERE component = ?", ["dot_leaderboard:%s" % ENTRIES])
 
-	var store := DotLeaderboardStoreSql.new(driver)
+	var store := GSLeaderboardStoreSql.new(driver)
 	store.entries_table = ENTRIES
 	store.stats_table = STATS
 
-	var opened: DotResult = await store.open()
+	var opened: GSResult = await store.open()
 	_check("the store creates its tables", opened.ok, opened)
 
-	var board := DotLeaderboardDef.make(&"fastest", DotLeaderboardDef.Kind.TIME, {"map": "surf_live", "track": "0"})
+	var board := GSLeaderboardDef.make(&"fastest", GSLeaderboardDef.Kind.TIME, {"map": "surf_live", "track": "0"})
 	var key := board.key()
 
-	var first: DotResult = await store.put(_entry(key, &"p1", "Ann", 11.0))
+	var first: GSResult = await store.put(_entry(key, &"p1", "Ann", 11.0))
 	_check("a first entry has no previous", first.ok and first.value == null, first)
 
-	var again: DotResult = await store.put(_entry(key, &"p1", "Ann", 10.0))
+	var again: GSResult = await store.put(_entry(key, &"p1", "Ann", 10.0))
 	_check(
 		"writing it again updates and returns the previous",
-		again.ok and again.value is DotLeaderboardEntry and (again.value as DotLeaderboardEntry).value == 11.0,
+		again.ok and again.value is GSLeaderboardEntry and (again.value as GSLeaderboardEntry).value == 11.0,
 		again
 	)
 
@@ -69,7 +69,7 @@ func _ready() -> void:
 	await store.put(_entry(key, &"p3", "Cy", 61.123))
 	await store.put(_entry(key, &"p4", "Di", 75.0))
 
-	var page: DotResult = await store.page(board)
+	var page: GSResult = await store.page(board)
 	var rows: Array = page.value if page.ok else []
 	_check(
 		"a time board comes back lowest first, a tie sharing its rank (1, 2, 2, 4)",
@@ -77,95 +77,95 @@ func _ready() -> void:
 		page, _shape(rows)
 	)
 
-	var second: DotResult = await store.page(board, 2, 2)
+	var second: GSResult = await store.page(board, 2, 2)
 	_check(
 		"a later page keeps the ranks of the whole board",
 		_shape(second.value if second.ok else []) == "p3=2 p4=4",
 		second, _shape(second.value if second.ok else [])
 	)
 
-	var p2: DotLeaderboardEntry = rows[1] if rows.size() > 1 else null
+	var p2: GSLeaderboardEntry = rows[1] if rows.size() > 1 else null
 	_check(
 		"a name with a quote and an emoji, its meta and its thousandths all come back",
 		p2 != null and p2.player_name == "O'Brien 🙃; --" and p2.value == 61.123
 			and str(p2.meta.get("replay", "")) == "r'2" and p2.set_at == 1700000000
 	)
 
-	var mine: DotResult = await store.entry_for(board, &"p4")
+	var mine: GSResult = await store.entry_for(board, &"p4")
 	_check(
 		"one player's entry carries their rank",
-		mine.ok and mine.value is DotLeaderboardEntry and (mine.value as DotLeaderboardEntry).rank == 4,
+		mine.ok and mine.value is GSLeaderboardEntry and (mine.value as GSLeaderboardEntry).rank == 4,
 		mine
 	)
 
-	var absent: DotResult = await store.entry_for(board, &"nobody")
+	var absent: GSResult = await store.entry_for(board, &"nobody")
 	_check("an absent player is a success carrying null", absent.ok and absent.value == null, absent)
 
-	var counted: DotResult = await store.count_on(board)
+	var counted: GSResult = await store.count_on(board)
 	_check("the board counts four", counted.ok and counted.value == 4, counted)
 
-	var other := DotLeaderboardDef.make(&"fastest", DotLeaderboardDef.Kind.TIME, {"map": "elsewhere", "track": "0"})
-	var elsewhere: DotResult = await store.count_on(other)
+	var other := GSLeaderboardDef.make(&"fastest", GSLeaderboardDef.Kind.TIME, {"map": "elsewhere", "track": "0"})
+	var elsewhere: GSResult = await store.count_on(other)
 	_check("another scope is another board", elsewhere.ok and elsewhere.value == 0, elsewhere)
 
-	var kills := DotLeaderboardDef.make(&"kills", DotLeaderboardDef.Kind.SCORE)
+	var kills := GSLeaderboardDef.make(&"kills", GSLeaderboardDef.Kind.SCORE)
 	await store.put(_entry(kills.key(), &"p1", "Ann", 5.0))
 	await store.put(_entry(kills.key(), &"p2", "Bo", 9.0))
 	await store.put(_entry(kills.key(), &"p3", "Cy", 5.0))
-	var scores: DotResult = await store.page(kills)
+	var scores: GSResult = await store.page(kills)
 	_check(
 		"a score board comes back highest first (1, 2, 2)",
 		_shape(scores.value if scores.ok else []) == "p2=1 p1=2 p3=2",
 		scores, _shape(scores.value if scores.ok else [])
 	)
 
-	var removed: DotResult = await store.remove(board, &"p4")
-	var after: DotResult = await store.count_on(board)
+	var removed: GSResult = await store.remove(board, &"p4")
+	var after: GSResult = await store.count_on(board)
 	_check("a removal removes", removed.ok and removed.value == true and after.ok and after.value == 3, removed)
 
-	var round_one := DotStatSet.new()
+	var round_one := GSStatSet.new()
 	round_one.add(&"kills", 3.0)
 	round_one.add(&"metres", 1.5)
 	await store.add_stats(&"p1", round_one)
-	var round_two := DotStatSet.new()
+	var round_two := GSStatSet.new()
 	round_two.add(&"kills", 4.0)
 	round_two.add(&"metres", 2.25)
-	var totals: DotResult = await store.add_stats(&"p1", round_two)
-	var set: DotStatSet = totals.value if totals.ok else DotStatSet.new()
+	var totals: GSResult = await store.add_stats(&"p1", round_two)
+	var set: GSStatSet = totals.value if totals.ok else GSStatSet.new()
 	_check(
 		"counters add in the database: 3 + 4 kills, 1.5 + 2.25 metres",
 		set.get_value(&"kills") == 7.0 and set.get_value(&"metres") == 3.75,
 		totals, str(set.to_dictionary())
 	)
 
-	var nobody: DotResult = await store.stats_for(&"nobody")
-	_check("a player with no counters reads as an empty set", nobody.ok and (nobody.value as DotStatSet).size() == 0, nobody)
+	var nobody: GSResult = await store.stats_for(&"nobody")
+	_check("a player with no counters reads as an empty set", nobody.ok and (nobody.value as GSStatSet).size() == 0, nobody)
 
 	# Through the manager, the way a game uses it.
-	var manager := DotLeaderboardManager.new()
+	var manager := GSLeaderboardManager.new()
 	manager.store = store
 	manager.report_interval = 0.0
 	add_child(manager)
-	manager.define(DotLeaderboardDef.make(&"fastest", DotLeaderboardDef.Kind.TIME))
+	manager.define(GSLeaderboardDef.make(&"fastest", GSLeaderboardDef.Kind.TIME))
 	var scope := {"map": "surf_live", "track": "0"}
-	var filed: DotResult = await manager.submit_async(&"fastest", scope, &"p3", "Cy", 9.5)
+	var filed: GSResult = await manager.submit_async(&"fastest", scope, &"p3", "Cy", 9.5)
 	_check(
 		"the manager files an improvement and hands it back ranked first",
-		filed.ok and filed.value is DotLeaderboardEntry and (filed.value as DotLeaderboardEntry).rank == 1,
+		filed.ok and filed.value is GSLeaderboardEntry and (filed.value as GSLeaderboardEntry).rank == 1,
 		filed
 	)
-	var worse: DotResult = await manager.submit_async(&"fastest", scope, &"p3", "Cy", 99.0)
-	var still: DotResult = await store.entry_for(board, &"p3")
+	var worse: GSResult = await manager.submit_async(&"fastest", scope, &"p3", "Cy", 99.0)
+	var still: GSResult = await store.entry_for(board, &"p3")
 	_check(
 		"and leaves a worse one off the table",
-		worse.ok and still.ok and (still.value as DotLeaderboardEntry).value == 9.5,
+		worse.ok and still.ok and (still.value as GSLeaderboardEntry).value == 9.5,
 		worse
 	)
 
-	var reopened := DotLeaderboardStoreSql.new(driver)
+	var reopened := GSLeaderboardStoreSql.new(driver)
 	reopened.entries_table = ENTRIES
 	reopened.stats_table = STATS
-	var reopen: DotResult = await reopened.open()
+	var reopen: GSResult = await reopened.open()
 	_check("opening existing tables again is harmless", reopen.ok, reopen)
 
 	print("%d passed, %d failed" % [_passed, _failed])
@@ -176,8 +176,8 @@ func _ready() -> void:
 	get_tree().quit(1 if _failed > 0 or _passed + _failed != CHECKS else 0)
 
 
-func _entry(key: String, player: StringName, name: String, value: float, meta: Dictionary = {}) -> DotLeaderboardEntry:
-	var entry := DotLeaderboardEntry.make(key, player, name, value, meta)
+func _entry(key: String, player: StringName, name: String, value: float, meta: Dictionary = {}) -> GSLeaderboardEntry:
+	var entry := GSLeaderboardEntry.make(key, player, name, value, meta)
 	entry.set_at = 1700000000
 	return entry
 
@@ -185,11 +185,11 @@ func _entry(key: String, player: StringName, name: String, value: float, meta: D
 func _shape(rows: Array) -> String:
 	var parts := PackedStringArray()
 	for row in rows:
-		parts.append("%s=%d" % [String((row as DotLeaderboardEntry).player_id), (row as DotLeaderboardEntry).rank])
+		parts.append("%s=%d" % [String((row as GSLeaderboardEntry).player_id), (row as GSLeaderboardEntry).rank])
 	return " ".join(parts)
 
 
-func _check(what: String, passed: bool, res: DotResult = null, detail: String = "") -> void:
+func _check(what: String, passed: bool, res: GSResult = null, detail: String = "") -> void:
 	if passed:
 		_passed += 1
 		print("  %-60s ok" % what)

@@ -4,7 +4,7 @@ Bugs worth recognising if they come back.
 
 ## Every board had the last scope anybody asked for
 
-Found by the suite. **`to_dictionary()` handed out its own `scope` dictionary.** A `Dictionary` is a reference in GDScript, and `scoped()` round-trips through `to_dictionary`/`from_dictionary`, so every scoped board and the template it came from were one object, and every board on the server ended up with the last scope anybody asked for. The same aliasing was then found and fixed in `DotTimerZone.payload`, `DotTimerRecord.splits`/`stats`/`extra` and `DotMapDef.meta`, none of which had a test that would have caught it.
+Found by the suite. **`to_dictionary()` handed out its own `scope` dictionary.** A `Dictionary` is a reference in GDScript, and `scoped()` round-trips through `to_dictionary`/`from_dictionary`, so every scoped board and the template it came from were one object, and every board on the server ended up with the last scope anybody asked for. The same aliasing was then found and fixed in `GSTimerZone.payload`, `GSTimerRecord.splits`/`stats`/`extra` and `GSMapDef.meta`, none of which had a test that would have caught it.
 
 ## The two ends had never met
 

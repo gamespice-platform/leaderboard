@@ -1,9 +1,9 @@
-class_name DotLeaderboardReporter
+class_name GSLeaderboardReporter
 extends RefCounted
 
 ## Sends entries and statistics to the TMC backbone, in batches, without losing them.
 ##
-## [b]GameSpice Auth is not a dependency and [code]DotBackboneClient[/code] is not named.[/b]
+## [b]GameSpice Auth is not a dependency and [code]GSBackboneClient[/code] is not named.[/b]
 ## The family rule — a script that mentions an absent [code]class_name[/code] fails to
 ## parse. The client is assigned as an [Object] and its
 ## [code]post_integration(path, body)[/code] is called by name, which is the generic
@@ -60,8 +60,8 @@ var failures: int = 0
 var last_error: String = ""
 
 
-static func with_client(p_client: Object) -> DotLeaderboardReporter:
-	var reporter := DotLeaderboardReporter.new()
+static func with_client(p_client: Object) -> GSLeaderboardReporter:
+	var reporter := GSLeaderboardReporter.new()
 	reporter.client = p_client
 	return reporter
 
@@ -77,7 +77,7 @@ func is_available() -> bool:
 ## not is one whose timing depends on the network, and the place this is called from
 ## is the end of a run.
 func queue_entry(
-	board: DotLeaderboardDef, entry: DotLeaderboardEntry
+	board: GSLeaderboardDef, entry: GSLeaderboardEntry
 ) -> void:
 	if board == null or entry == null:
 		return
@@ -97,7 +97,7 @@ func queue_entry(
 	_queue.append({
 		"board": String(board.id),
 		"scope": board.scope.duplicate(true),
-		"kind": DotLeaderboardDef.kind_name(board.kind),
+		"kind": GSLeaderboardDef.kind_name(board.kind),
 		"player": String(entry.player_id),
 		"name": entry.player_name,
 		"value": entry.value,
@@ -115,7 +115,7 @@ func queue_entry(
 		dropped += 1
 
 		if dropped == 1 or dropped % 100 == 0:
-			DotLog.warn(CHANNEL, "the report queue is full; dropping oldest", {
+			GSLog.warn(CHANNEL, "the report queue is full; dropping oldest", {
 				"dropped": dropped, "limit": queue_limit
 			})
 
@@ -131,15 +131,15 @@ func queued() -> int:
 ## flush arriving while the first is in flight — the re-queue puts them back behind
 ## entries that are newer, and the ordering the backbone sees stops being the ordering
 ## they happened in.
-func flush() -> DotResult:
+func flush() -> GSResult:
 	if _queue.is_empty():
-		return DotResult.success(0)
+		return GSResult.success(0)
 
 	if not is_available():
-		return DotResult.fail(
-			DotError.CODE_STATE,
+		return GSResult.fail(
+			GSError.CODE_STATE,
 			"No backbone client; leaderboard reporting is off.",
-			"assign DotLeaderboardReporter.client from dot-auth's DotBackboneClient"
+			"assign GSLeaderboardReporter.client from dot-auth's GSBackboneClient"
 		)
 
 	# The site's `overwrite` is per request, so a batch is the run of queued entries
@@ -159,12 +159,12 @@ func flush() -> DotResult:
 		"post_integration", SUBMIT_PATH, {"entries": batch, "overwrite": overwrite}
 	)
 
-	if not (result is DotResult):
+	if not (result is GSResult):
 		failures += 1
 		last_error = "the backbone client returned something unexpected"
-		return DotResult.fail(DotError.CODE_INTERNAL, last_error, str(result))
+		return GSResult.fail(GSError.CODE_INTERNAL, last_error, str(result))
 
-	var typed: DotResult = result
+	var typed: GSResult = result
 
 	if not typed.ok:
 		failures += 1
@@ -173,13 +173,13 @@ func flush() -> DotResult:
 		# A 403 will not fix itself, so say which scope is missing rather than
 		# retrying it every thirty seconds for ever.
 		if typed.error.http_status == 403:
-			DotLog.warn(
+			GSLog.warn(
 				CHANNEL,
 				"the backbone refused the report; the integration may lack a scope",
 				{"need": SCOPE_WRITE}
 			)
 		else:
-			DotLog.debug(CHANNEL, "report failed; keeping the queue", {
+			GSLog.debug(CHANNEL, "report failed; keeping the queue", {
 				"why": last_error, "queued": _queue.size()
 			})
 
@@ -191,14 +191,14 @@ func flush() -> DotResult:
 	sent += count
 	last_error = ""
 
-	return DotResult.success(count)
+	return GSResult.success(count)
 
 
 ## Sends every queued entry, a batch at a time.
 ##
 ## Bounded by the queue's own limit so it cannot spin: each successful pass removes at
 ## least one entry, and a failed one stops.
-func flush_all() -> DotResult:
+func flush_all() -> GSResult:
 	var total := 0
 
 	while not _queue.is_empty():
@@ -209,7 +209,7 @@ func flush_all() -> DotResult:
 
 		total += int(flushed.value)
 
-	return DotResult.success(total)
+	return GSResult.success(total)
 
 
 ## Declares a board to the backbone, so a site can render it before anybody has
@@ -219,15 +219,15 @@ func flush_all() -> DotResult:
 ## ordering and units are editorial and change without any entry changing; deriving
 ## them from the first submission means a site cannot show an empty board at all, and
 ## renaming one means waiting for somebody to play.
-func define(board: DotLeaderboardDef) -> DotResult:
+func define(board: GSLeaderboardDef) -> GSResult:
 	if not is_available():
-		return DotResult.fail(
-			DotError.CODE_STATE, "No backbone client."
+		return GSResult.fail(
+			GSError.CODE_STATE, "No backbone client."
 		)
 
 	if not board.publish:
-		return DotResult.fail(
-			DotError.CODE_FORBIDDEN,
+		return GSResult.fail(
+			GSError.CODE_FORBIDDEN,
 			"That board is not published.",
 			String(board.id)
 		)
@@ -236,8 +236,8 @@ func define(board: DotLeaderboardDef) -> DotResult:
 		"post_integration", DEFINE_PATH, {"boards": [wire_definition(board)]}
 	)
 
-	return result if result is DotResult else DotResult.fail(
-		DotError.CODE_INTERNAL,
+	return result if result is GSResult else GSResult.fail(
+		GSError.CODE_INTERNAL,
 		"The backbone client returned something unexpected.",
 		str(result)
 	)
@@ -257,13 +257,13 @@ func describe() -> Dictionary:
 ## A board as the backbone's `LeaderboardDefineInput` names it: `key`, not `id`,
 ## and the kind by name. `to_dictionary()` is this addon's own file format and is
 ## not the wire.
-static func wire_definition(board: DotLeaderboardDef) -> Dictionary:
+static func wire_definition(board: GSLeaderboardDef) -> Dictionary:
 	return {
 		"key": String(board.id),
 		"scope": board.scope.duplicate(true),
 		"name": board.display_name,
 		"description": board.description,
-		"kind": DotLeaderboardDef.kind_name(board.kind),
+		"kind": GSLeaderboardDef.kind_name(board.kind),
 		"decimals": board.decimals,
 		"unit": board.unit,
 		"visible": board.visible,

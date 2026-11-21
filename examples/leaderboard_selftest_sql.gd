@@ -30,9 +30,9 @@ func _check(ok: bool, what: String, detail: String = "") -> void:
 		print("  FAIL  %s" % line)
 
 
-func _manager() -> DotLeaderboardManager:
-	var manager := DotLeaderboardManager.new()
-	manager.store = DotLeaderboardStoreMemory.new()
+func _manager() -> GSLeaderboardManager:
+	var manager := GSLeaderboardManager.new()
+	manager.store = GSLeaderboardStoreMemory.new()
 	manager.report_interval = 0.0
 	add_child(manager)
 	return manager
@@ -43,24 +43,24 @@ func _manager() -> DotLeaderboardManager:
 func _test_sql_store() -> void:
 	_section("the SQL store, against a driver that records what it is asked")
 
-	var entries_spec := DotLeaderboardSqlSchema.entries_spec()
-	var stats_spec := DotLeaderboardSqlSchema.stats_spec()
+	var entries_spec := GSLeaderboardSqlSchema.entries_spec()
+	var stats_spec := GSLeaderboardSqlSchema.stats_spec()
 	_check(
-		DotSqlSchema.validate(entries_spec).ok and DotSqlSchema.validate(stats_spec).ok,
+		GSSqlSchema.validate(entries_spec).ok and GSSqlSchema.validate(stats_spec).ok,
 		"both table specs are valid: safe names, no reserved words, indexable key columns"
 	)
 
-	var driver := DotSqlDriverRecording.new(DotSqlDialect.Kind.POSTGRES)
+	var driver := GSSqlDriverRecording.new(GSSqlDialect.Kind.POSTGRES)
 	driver.answers = {"SELECT version FROM": []}
-	var store := DotLeaderboardStoreSql.new(driver)
+	var store := GSLeaderboardStoreSql.new(driver)
 
-	var closed: DotResult = await store.page(DotLeaderboardDef.make(&"fastest", DotLeaderboardDef.Kind.TIME))
+	var closed: GSResult = await store.page(GSLeaderboardDef.make(&"fastest", GSLeaderboardDef.Kind.TIME))
 	_check(
-		not closed.ok and closed.code() == DotError.CODE_STATE,
+		not closed.ok and closed.code() == GSError.CODE_STATE,
 		"a store that was never opened says so rather than querying nothing"
 	)
 
-	var opened: DotResult = await store.open()
+	var opened: GSResult = await store.open()
 	_check(opened.ok, "the store opens and creates its schema", str(opened.error))
 	_check(
 		driver.matching("CREATE TABLE IF NOT EXISTS dot_leaderboard_entries").size() == 1
@@ -78,8 +78,8 @@ func _test_sql_store() -> void:
 	)
 
 	# Writing. The previous entry is read first because put() returns it.
-	var board := DotLeaderboardDef.make(&"fastest", DotLeaderboardDef.Kind.TIME, {"map": "surf_a"})
-	var entry := DotLeaderboardEntry.make(board.key(), &"p1", "O'Brien; DROP", 12.5, {"replay": "r1"})
+	var board := GSLeaderboardDef.make(&"fastest", GSLeaderboardDef.Kind.TIME, {"map": "surf_a"})
+	var entry := GSLeaderboardEntry.make(board.key(), &"p1", "O'Brien; DROP", 12.5, {"replay": "r1"})
 	entry.set_at = 1700000000
 
 	await _sql_writes(driver, store, board, entry)
@@ -90,7 +90,7 @@ func _test_sql_store() -> void:
 	_done()
 
 
-func _sql_writes(driver: DotSqlDriverRecording, store: DotLeaderboardStoreSql, board: DotLeaderboardDef, entry: DotLeaderboardEntry) -> void:
+func _sql_writes(driver: GSSqlDriverRecording, store: GSLeaderboardStoreSql, board: GSLeaderboardDef, entry: GSLeaderboardEntry) -> void:
 	driver.clear()
 	driver.answers = {
 		"SELECT board_key, player_id": [{
@@ -98,9 +98,9 @@ func _sql_writes(driver: DotSqlDriverRecording, store: DotLeaderboardStoreSql, b
 			"score": "14.25", "set_at": 1600000000.0, "meta": "",
 		}],
 	}
-	var put: DotResult = await store.put(entry)
+	var put: GSResult = await store.put(entry)
 	_check(
-		put.ok and put.value is DotLeaderboardEntry and (put.value as DotLeaderboardEntry).value == 14.25,
+		put.ok and put.value is GSLeaderboardEntry and (put.value as GSLeaderboardEntry).value == 14.25,
 		"a write returns the previous entry, mapped from its row (a score that came back as text)"
 	)
 	_check(
@@ -131,7 +131,7 @@ func _sql_writes(driver: DotSqlDriverRecording, store: DotLeaderboardStoreSql, b
 			_check(false, "the write statement was not recorded")
 
 
-func _sql_reads(driver: DotSqlDriverRecording, store: DotLeaderboardStoreSql, board: DotLeaderboardDef, entry: DotLeaderboardEntry) -> void:
+func _sql_reads(driver: GSSqlDriverRecording, store: GSLeaderboardStoreSql, board: GSLeaderboardDef, entry: GSLeaderboardEntry) -> void:
 	# Reading a page: the direction and the comparison come from the board's kind.
 	driver.clear()
 	driver.rows = [
@@ -139,7 +139,7 @@ func _sql_reads(driver: DotSqlDriverRecording, store: DotLeaderboardStoreSql, bo
 		{"board_key": board.key(), "player_id": "p1", "player_name": null, "score": 12.5, "set_at": 6.0, "meta": "", "place": 2},
 		{"board_key": board.key(), "player_id": "p3", "player_name": "Cy", "score": 12.5, "set_at": 7.0, "meta": "", "place": 2},
 	]
-	var page: DotResult = await store.page(board, 5, 3)
+	var page: GSResult = await store.page(board, 5, 3)
 	var sql := str(driver.statements[0]["sql"]) if driver.statements.size() == 1 else ""
 	_check(
 		sql.contains("ORDER BY e.score ASC") and sql.contains("b.score < e.score"),
@@ -152,16 +152,16 @@ func _sql_reads(driver: DotSqlDriverRecording, store: DotLeaderboardStoreSql, bo
 	)
 	var rows: Array = page.value if page.ok else []
 	_check(
-		rows.size() == 3 and (rows[0] as DotLeaderboardEntry).rank == 1 and (rows[0] as DotLeaderboardEntry).meta.get("replay", "") == "r2",
+		rows.size() == 3 and (rows[0] as GSLeaderboardEntry).rank == 1 and (rows[0] as GSLeaderboardEntry).meta.get("replay", "") == "r2",
 		"rows map back with their rank and their meta"
 	)
 	_check(
-		rows.size() == 3 and (rows[1] as DotLeaderboardEntry).rank == 2 and (rows[2] as DotLeaderboardEntry).rank == 2
-			and (rows[1] as DotLeaderboardEntry).player_name == "",
+		rows.size() == 3 and (rows[1] as GSLeaderboardEntry).rank == 2 and (rows[2] as GSLeaderboardEntry).rank == 2
+			and (rows[1] as GSLeaderboardEntry).player_name == "",
 		"a tie comes back sharing its rank, and a NULL name as empty rather than \"<null>\""
 	)
 
-	var score_board := DotLeaderboardDef.make(&"kills", DotLeaderboardDef.Kind.SCORE)
+	var score_board := GSLeaderboardDef.make(&"kills", GSLeaderboardDef.Kind.SCORE)
 	driver.clear()
 	driver.rows = []
 	await store.page(score_board)
@@ -172,38 +172,38 @@ func _sql_reads(driver: DotSqlDriverRecording, store: DotLeaderboardStoreSql, bo
 	)
 
 	driver.clear()
-	var absent: DotResult = await store.entry_for(board, &"nobody")
+	var absent: GSResult = await store.entry_for(board, &"nobody")
 	_check(
 		absent.ok and absent.value == null and (driver.statements[0]["params"] as Array) == [board.key(), "nobody"],
 		"an absent player is a success carrying null, looked up by board and player"
 	)
 
 	driver.answers = {"COUNT(*) AS entries": [{"entries": 42.0}]}
-	var counted: DotResult = await store.count_on(board)
+	var counted: GSResult = await store.count_on(board)
 	_check(counted.ok and counted.value is int and counted.value == 42, "a count comes back an int, whatever JSON made of it")
 
 
-func _sql_counters(driver: DotSqlDriverRecording, store: DotLeaderboardStoreSql, board: DotLeaderboardDef, entry: DotLeaderboardEntry) -> void:
+func _sql_counters(driver: GSSqlDriverRecording, store: GSLeaderboardStoreSql, board: GSLeaderboardDef, entry: GSLeaderboardEntry) -> void:
 	# Counters: additive in the database, in the driver's own dialect.
 	driver.clear()
 	driver.answers = {"SELECT stat_id, amount": [{"stat_id": "kills", "amount": 7.0}, {"stat_id": "metres", "amount": "120.5"}]}
-	var set := DotStatSet.new()
+	var set := GSStatSet.new()
 	set.add(&"kills", 3.0)
 	set.add(&"metres", 20.5)
-	var totals: DotResult = await store.add_stats(&"p1", set)
+	var totals: GSResult = await store.add_stats(&"p1", set)
 	var adds := driver.matching("INSERT INTO dot_leaderboard_stats")
 	_check(
 		adds.size() == 2 and str(adds[0]["sql"]).contains("amount = dot_leaderboard_stats.amount + excluded.amount"),
 		"a counter is added by the database, one statement each, not read and rewritten here"
 	)
 	_check(
-		totals.ok and (totals.value as DotStatSet).get_value(&"kills") == 7.0 and (totals.value as DotStatSet).get_value(&"metres") == 120.5,
+		totals.ok and (totals.value as GSStatSet).get_value(&"kills") == 7.0 and (totals.value as GSStatSet).get_value(&"metres") == 120.5,
 		"and the totals come back read from the table"
 	)
 
-	var mysql := DotSqlDriverRecording.new(DotSqlDialect.Kind.MYSQL)
+	var mysql := GSSqlDriverRecording.new(GSSqlDialect.Kind.MYSQL)
 	mysql.answers = {"SELECT version FROM": []}
-	var mysql_store := DotLeaderboardStoreSql.new(mysql)
+	var mysql_store := GSLeaderboardStoreSql.new(mysql)
 	await mysql_store.open()
 	mysql.clear()
 	await mysql_store.add_stats(&"p1", set)
@@ -214,51 +214,51 @@ func _sql_counters(driver: DotSqlDriverRecording, store: DotLeaderboardStoreSql,
 	)
 
 	driver.clear()
-	var nan_entry := DotLeaderboardEntry.make(board.key(), &"p9", "N", NAN)
-	var nan_put: DotResult = await store.put(nan_entry)
+	var nan_entry := GSLeaderboardEntry.make(board.key(), &"p9", "N", NAN)
+	var nan_put: GSResult = await store.put(nan_entry)
 	_check(
 		not nan_put.ok and driver.statements.is_empty(),
 		"a NaN is refused before any statement: JSON cannot carry one and MySQL refuses it"
 	)
 
 
-func _sql_failures(driver: DotSqlDriverRecording, store: DotLeaderboardStoreSql, board: DotLeaderboardDef, entry: DotLeaderboardEntry) -> void:
+func _sql_failures(driver: GSSqlDriverRecording, store: GSLeaderboardStoreSql, board: GSLeaderboardDef, entry: GSLeaderboardEntry) -> void:
 	# Failures are failures.
 	driver.clear()
 	driver.fail_next = "connection reset"
-	var failed_page: DotResult = await store.page(board)
+	var failed_page: GSResult = await store.page(board)
 	_check(not failed_page.ok, "a read failure is reported rather than read as an empty board")
 
 	# The read before a write succeeds and the write fails. fail_next would fail the read
 	# instead, so a driver that fails one statement by its text.
-	var flaky := FailSecond.new(DotSqlDialect.Kind.POSTGRES)
+	var flaky := FailSecond.new(GSSqlDialect.Kind.POSTGRES)
 	flaky.answers = {"SELECT version FROM": []}
-	var flaky_store := DotLeaderboardStoreSql.new(flaky)
+	var flaky_store := GSLeaderboardStoreSql.new(flaky)
 	await flaky_store.open()
 	flaky.fail_on = "INSERT INTO dot_leaderboard_entries"
-	var failed_put: DotResult = await flaky_store.put(entry)
+	var failed_put: GSResult = await flaky_store.put(entry)
 	_check(not failed_put.ok, "a write failure is reported, not swallowed")
 
-	var newer := DotSqlDriverRecording.new(DotSqlDialect.Kind.SQLITE)
+	var newer := GSSqlDriverRecording.new(GSSqlDialect.Kind.SQLITE)
 	newer.answers = {"SELECT version FROM": [{"version": 99}]}
-	var refused: DotResult = await DotLeaderboardStoreSql.new(newer).open()
+	var refused: GSResult = await GSLeaderboardStoreSql.new(newer).open()
 	_check(
 		not refused.ok and newer.matching("CREATE TABLE IF NOT EXISTS dot_leaderboard_entries").is_empty(),
 		"a database from a newer build is refused, and nothing is created in it"
 	)
 
 
-func _sql_manager(driver: DotSqlDriverRecording, store: DotLeaderboardStoreSql, board: DotLeaderboardDef) -> void:
+func _sql_manager(driver: GSSqlDriverRecording, store: GSLeaderboardStoreSql, board: GSLeaderboardDef) -> void:
 	# Through the manager. The synchronous form refuses a store that suspends, in words.
-	var manager := DotLeaderboardManager.new()
+	var manager := GSLeaderboardManager.new()
 	manager.store = store
 	manager.report_interval = 0.0
 	add_child(manager)
-	manager.define(DotLeaderboardDef.make(&"fastest", DotLeaderboardDef.Kind.TIME))
+	manager.define(GSLeaderboardDef.make(&"fastest", GSLeaderboardDef.Kind.TIME))
 
 	var sync_try := manager.submit(&"fastest", {"map": "surf_a"}, &"p1", "P", 9.0)
 	_check(
-		not sync_try.ok and sync_try.code() == DotError.CODE_UNSUPPORTED and sync_try.error.message.contains("submit_async"),
+		not sync_try.ok and sync_try.code() == GSError.CODE_UNSUPPORTED and sync_try.error.message.contains("submit_async"),
 		"the synchronous submit refuses an asynchronous store and names the form that works",
 		str(sync_try.error)
 	)
@@ -268,20 +268,20 @@ func _sql_manager(driver: DotSqlDriverRecording, store: DotLeaderboardStoreSql, 
 		"AS place": [{"board_key": board.key(), "player_id": "p1", "player_name": "P", "score": 12.5, "set_at": 1.0, "meta": "", "place": 3.0}],
 		"SELECT board_key, player_id": [],
 	}
-	var filed: DotResult = await manager.submit_async(&"fastest", {"map": "surf_a"}, &"p1", "P", 9.0)
+	var filed: GSResult = await manager.submit_async(&"fastest", {"map": "surf_a"}, &"p1", "P", 9.0)
 	_check(
-		filed.ok and filed.value is DotLeaderboardEntry and (filed.value as DotLeaderboardEntry).value == 9.0
+		filed.ok and filed.value is GSLeaderboardEntry and (filed.value as GSLeaderboardEntry).value == 9.0
 			and driver.matching("INSERT INTO dot_leaderboard_entries").size() == 1,
 		"submit_async files an improvement through the SQL store",
 		str(filed.error)
 	)
 	_check(
-		filed.ok and (filed.value as DotLeaderboardEntry).rank == 3,
+		filed.ok and (filed.value as GSLeaderboardEntry).rank == 3,
 		"and hands back the entry ranked by a query, as the memory store's re-sort would"
 	)
 
 	driver.clear()
-	var worse: DotResult = await manager.submit_async(&"fastest", {"map": "surf_a"}, &"p1", "P", 20.0)
+	var worse: GSResult = await manager.submit_async(&"fastest", {"map": "surf_a"}, &"p1", "P", 20.0)
 	_check(
 		worse.ok and driver.matching("INSERT INTO").is_empty(),
 		"and writes nothing for a result that did not beat the player's own"
@@ -291,14 +291,14 @@ func _sql_manager(driver: DotSqlDriverRecording, store: DotLeaderboardStoreSql, 
 
 
 ## A recording driver that fails every statement containing [member fail_on].
-class FailSecond extends DotSqlDriverRecording:
+class FailSecond extends GSSqlDriverRecording:
 	var fail_on: String = ""
 
-	func _init(p_dialect: int = DotSqlDialect.Kind.SQLITE) -> void:
+	func _init(p_dialect: int = GSSqlDialect.Kind.SQLITE) -> void:
 		super(p_dialect)
 
-	func _execute(sql: String, params: Array) -> DotResult:
+	func _execute(sql: String, params: Array) -> GSResult:
 		if fail_on != "" and sql.contains(fail_on):
 			statements.append({"sql": sql, "params": params.duplicate()})
-			return DotResult.fail(DotError.CODE_IO, "disk full")
+			return GSResult.fail(GSError.CODE_IO, "disk full")
 		return await super(sql, params)
