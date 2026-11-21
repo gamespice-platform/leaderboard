@@ -43,7 +43,7 @@ The manager does refuse two things, and both are structural rather than editoria
 
 ## Deliberately not here
 
-- **A leaderboard UI.** dot-ui has the screen stack; what a board looks like is a game's own decision and every game's is different.
+- **A leaderboard UI.** gs-ui has the screen stack; what a board looks like is a game's own decision and every game's is different.
 - **Cross-map ranking.** Summing a player's points across every board into one rank is a policy decision (which boards count, how they weight, whether it decays) and it belongs to the game or to the site, not to the storage layer.
 - **Seasons and resets** as code: a season is a scope key.
 - **Reading the backbone's copy.** The reporter writes. A client that wants the site's leaderboard asks the site, over HTTP, like any other page.

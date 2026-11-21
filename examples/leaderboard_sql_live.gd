@@ -8,13 +8,13 @@ extends Node
 ## dialect and sets GS_SQL_URL, GS_SQL_DIALECT and GS_SQL_TOKEN_FILE:
 ##
 ## [codeblock]
-## ../dot-sql/tools/test_live.sh . res://examples/leaderboard_sql_live.tscn
+## ../gs-sql/tools/test_live.sh . res://examples/leaderboard_sql_live.tscn
 ## [/codeblock]
 
 const CHECKS := 17
 
-const ENTRIES := "dot_lb_live_entries"
-const STATS := "dot_lb_live_stats"
+const ENTRIES := "gs_lb_live_entries"
+const STATS := "gs_lb_live_stats"
 
 var _passed := 0
 var _failed := 0
@@ -23,26 +23,26 @@ var _failed := 0
 func _ready() -> void:
 	GSLog.set_level(GSLog.Level.ERROR)
 
-	var dialect := GSSqlDialect.from_name((OS.get_environment("GS_SQL_DIALECT") if OS.has_environment("GS_SQL_DIALECT") else OS.get_environment("DOT_SQL_DIALECT")))
+	var dialect := GSSqlDialect.from_name((OS.get_environment("GS_SQL_DIALECT") if OS.has_environment("GS_SQL_DIALECT") else OS.get_environment("GS_SQL_DIALECT")))
 	var made := GSSql.from_config({
 		"driver": "gateway",
-		"url": (OS.get_environment("GS_SQL_URL") if OS.has_environment("GS_SQL_URL") else OS.get_environment("DOT_SQL_URL")),
+		"url": (OS.get_environment("GS_SQL_URL") if OS.has_environment("GS_SQL_URL") else OS.get_environment("GS_SQL_URL")),
 		"dialect": GSSqlDialect.name_of(dialect),
-		"token": FileAccess.get_file_as_string((OS.get_environment("GS_SQL_TOKEN_FILE") if OS.has_environment("GS_SQL_TOKEN_FILE") else OS.get_environment("DOT_SQL_TOKEN_FILE"))).strip_edges(),
+		"token": FileAccess.get_file_as_string((OS.get_environment("GS_SQL_TOKEN_FILE") if OS.has_environment("GS_SQL_TOKEN_FILE") else OS.get_environment("GS_SQL_TOKEN_FILE"))).strip_edges(),
 	}, self)
 	if not made.ok or made.value == null:
-		print("set GS_SQL_URL, GS_SQL_DIALECT and GS_SQL_TOKEN_FILE; see dot-sql/tools/test_live.sh")
+		print("set GS_SQL_URL, GS_SQL_DIALECT and GS_SQL_TOKEN_FILE; see gs-sql/tools/test_live.sh")
 		get_tree().quit(2)
 		return
 
 	var driver: GSSqlDriverGateway = made.value
-	print("dot-leaderboard live: %s" % GSSqlDialect.name_of(dialect))
+	print("gs-leaderboard live: %s" % GSSqlDialect.name_of(dialect))
 
 	# Clean tables every run.
 	await driver.open()
 	await driver.execute("DROP TABLE IF EXISTS %s" % ENTRIES)
 	await driver.execute("DROP TABLE IF EXISTS %s" % STATS)
-	await driver.execute("DELETE FROM dot_sql_migrations WHERE component = ?", ["dot_leaderboard:%s" % ENTRIES])
+	await driver.execute("DELETE FROM gs_sql_migrations WHERE component = ?", ["gs_leaderboard:%s" % ENTRIES])
 
 	var store := GSLeaderboardStoreSql.new(driver)
 	store.entries_table = ENTRIES
@@ -171,7 +171,7 @@ func _ready() -> void:
 	print("%d passed, %d failed" % [_passed, _failed])
 	await driver.execute("DROP TABLE IF EXISTS %s" % ENTRIES)
 	await driver.execute("DROP TABLE IF EXISTS %s" % STATS)
-	await driver.execute("DELETE FROM dot_sql_migrations WHERE component = ?", ["dot_leaderboard:%s" % ENTRIES])
+	await driver.execute("DELETE FROM gs_sql_migrations WHERE component = ?", ["gs_leaderboard:%s" % ENTRIES])
 	manager.queue_free()
 	get_tree().quit(1 if _failed > 0 or _passed + _failed != CHECKS else 0)
 

@@ -20,13 +20,13 @@ extends RefCounted
 ## standard revision away from it. So a board value is `score`, a counter is `amount`, and
 ## a computed rank comes back as `place`.
 
-const DEFAULT_ENTRIES_TABLE := "dot_leaderboard_entries"
-const DEFAULT_STATS_TABLE := "dot_leaderboard_stats"
+const DEFAULT_ENTRIES_TABLE := "gs_leaderboard_entries"
+const DEFAULT_STATS_TABLE := "gs_leaderboard_stats"
 
 ## The component the schema version is recorded under in GameSpice SQL's migration table,
 ## suffixed with the entries table so two stores in one database keep separate versions.
 ## Bumped by adding a step to [method migration_steps], never by editing one.
-const MIGRATION_COMPONENT := "dot_leaderboard"
+const MIGRATION_COMPONENT := "gs_leaderboard"
 
 ## Column order for the entries table. Every INSERT, SELECT and mapping uses this.
 const ENTRY_COLUMNS := ["board_key", "player_id", "player_name", "score", "set_at", "meta"]

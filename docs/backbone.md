@@ -34,7 +34,7 @@ A `running_total` board's entries go in their own request with the site's `overw
 
 ## Reading the backbone: `GSLeaderboardStoreBackbone`
 
-The reporter only writes. `GSLeaderboardStoreBackbone` is a store whose boards live on the site: `declare` (define, once per board), `put` (submit with `overwrite`, because the manager already judged improvement), `page`/`top`, `entry_for`, `rank_entry`, `around` and `count_on`, through `GET .../board` with the `LEADERBOARD_READ` scope. Select it with `GSLeaderboardManager.backend = "backbone"` and `backbone_client` (or a registered `dot_backbone_client`); memory stays the default. It is remote, so use the `_async` forms, and the manager does not also queue to the reporter. Authentication is the integration token on the client; the API takes no player token. Statistics are not on the site and stay unsupported.
+The reporter only writes. `GSLeaderboardStoreBackbone` is a store whose boards live on the site: `declare` (define, once per board), `put` (submit with `overwrite`, because the manager already judged improvement), `page`/`top`, `entry_for`, `rank_entry`, `around` and `count_on`, through `GET .../board` with the `LEADERBOARD_READ` scope. Select it with `GSLeaderboardManager.backend = "backbone"` and `backbone_client` (or a registered `gs_backbone_client`); memory stays the default. It is remote, so use the `_async` forms, and the manager does not also queue to the reporter. Authentication is the integration token on the client; the API takes no player token. Statistics are not on the site and stay unsupported.
 
 ## Choosing the store: `GSBoardsConfig`
 

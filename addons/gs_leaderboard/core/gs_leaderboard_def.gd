@@ -234,7 +234,7 @@ static func from_dictionary(data: Dictionary) -> GSLeaderboardDef:
 
 ## The kind's name, which is what leaves the server: "TIME", "SCORE", "POINTS",
 ## "PENALTY" — the backbone's enum, spelled the same on purpose.
-## The site's `dot-leaderboard-defs` document for [param boards]; [param game] 0 leaves the app id out.
+## The site's `gs-leaderboard-defs` document for [param boards]; [param game] 0 leaves the app id out.
 static func to_site_defs(boards: Array, game: int = 0) -> Dictionary:
 	var rows: Array = []
 	for board in boards:
@@ -249,7 +249,7 @@ static func to_site_defs(boards: Array, game: int = 0) -> Dictionary:
 			"description": b.description, "kind": kind_name(b.kind), "decimals": b.decimals,
 			"unit": b.unit, "visible": b.visible,
 		})
-	var out := {"format": "dot-leaderboard-defs", "version": 1}
+	var out := {"format": "gs-leaderboard-defs", "version": 1}
 	if game > 0:
 		out["game"] = game
 	out["boards"] = rows

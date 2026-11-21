@@ -139,7 +139,7 @@ func flush() -> GSResult:
 		return GSResult.fail(
 			GSError.CODE_STATE,
 			"No backbone client; leaderboard reporting is off.",
-			"assign GSLeaderboardReporter.client from dot-auth's GSBackboneClient"
+			"assign GSLeaderboardReporter.client from gs-auth's GSBackboneClient"
 		)
 
 	# The site's `overwrite` is per request, so a batch is the run of queued entries

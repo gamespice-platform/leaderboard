@@ -61,7 +61,7 @@ signal stats_changed(player_id: StringName, totals: GSStatSet)
 @export_enum("memory", "backbone") var backend: String = "memory"
 
 ## The client for the "backbone" backend: anything with `post_integration` and
-## `get_integration`. Falls back to the `dot_backbone_client` registry service.
+## `get_integration`. Falls back to the `gs_backbone_client` registry service.
 var backbone_client: Object = null
 
 ## Where entries live. A store that suspends must be opened before it is used here.
@@ -100,7 +100,7 @@ func _make_store() -> GSLeaderboardStore:
 
 	var client: Object = backbone_client
 	if client == null:
-		client = GSRegistry.get_service(&"dot_backbone_client")
+		client = GSRegistry.get_service(&"gs_backbone_client")
 	if client == null:
 		GSLog.warn(CHANNEL, "backend is backbone but no client is available; using memory")
 		return GSLeaderboardStoreMemory.new()

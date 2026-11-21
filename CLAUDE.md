@@ -20,11 +20,11 @@ Read the family [CLAUDE.md](../../CLAUDE.md) first; this file is only what is sp
 
 | Path | What |
 | --- | --- |
-| `addons/dot_leaderboard/core/` | `GSLeaderboardDef` (ordering, scope, rendering), `GSLeaderboardEntry`, `GSStatSet` (per-player counters; not a board) |
-| `addons/dot_leaderboard/store/` | `GSLeaderboardStore` (abstract), backbone (the site's `/api/integration/v1/leaderboard/*`: top, around-me, rank; remote, `_async` only; the manager skips its reporter for it), memory (sorted on write, ranks materialised), SQL (SQLite, Postgres, MySQL via dot-sql), `GSLeaderboardSqlSchema` |
-| `addons/dot_leaderboard/net/` | `GSLeaderboardReporter`: batches, queues and retries to the backbone |
-| `addons/dot_leaderboard/runtime/` | `GSLeaderboardManager`: boards, store and reporter; the node a game adds |
-| `addons/dot_leaderboard/testing/` | `GSLeaderboardFakeSite`: the in-process fake site for tests (`post_integration`/`get_integration`, one frame of latency, declare-before-submit, optional scope checks); games use it, never their own copy |
+| `addons/gs_leaderboard/core/` | `GSLeaderboardDef` (ordering, scope, rendering), `GSLeaderboardEntry`, `GSStatSet` (per-player counters; not a board) |
+| `addons/gs_leaderboard/store/` | `GSLeaderboardStore` (abstract), backbone (the site's `/api/integration/v1/leaderboard/*`: top, around-me, rank; remote, `_async` only; the manager skips its reporter for it), memory (sorted on write, ranks materialised), SQL (SQLite, Postgres, MySQL via gs-sql), `GSLeaderboardSqlSchema` |
+| `addons/gs_leaderboard/net/` | `GSLeaderboardReporter`: batches, queues and retries to the backbone |
+| `addons/gs_leaderboard/runtime/` | `GSLeaderboardManager`: boards, store and reporter; the node a game adds |
+| `addons/gs_leaderboard/testing/` | `GSLeaderboardFakeSite`: the in-process fake site for tests (`post_integration`/`get_integration`, one frame of latency, declare-before-submit, optional scope checks); games use it, never their own copy |
 | `examples/leaderboard_backbone_test.tscn` | the backbone store against the fake site, over TCP through GameSpice Auth's client and in-process |
 | `examples/leaderboard_selftest.tscn` | the suite (the SQL store through GameSpice SQL's recording driver) |
 | `examples/leaderboard_sql_live.tscn` | the SQL store against real databases |
@@ -32,7 +32,7 @@ Read the family [CLAUDE.md](../../CLAUDE.md) first; this file is only what is sp
 ## Running and testing
 
 - The family's two steps ([family CLAUDE.md](../../CLAUDE.md#validating-anything)), then `godot --headless --path . res://examples/leaderboard_selftest.tscn`.
-- Anything in the SQL store: `../dot-sql/tools/test_live.sh . res://examples/leaderboard_sql_live.tscn` (SQLite always; Postgres and MySQL with `GS_SQL_PG_DSN` / `GS_SQL_MYSQL_DSN`). [storage](docs/storage.md#testing)
+- Anything in the SQL store: `../gs-sql/tools/test_live.sh . res://examples/leaderboard_sql_live.tscn` (SQLite always; Postgres and MySQL with `GS_SQL_PG_DSN` / `GS_SQL_MYSQL_DSN`). [storage](docs/storage.md#testing)
 - A change to the manager's sync forms: re-run game-fatal-contact's and game-hungario's suites, which call them.
 
 ## Rules that bite
@@ -44,7 +44,7 @@ Read the family [CLAUDE.md](../../CLAUDE.md) first; this file is only what is sp
 - Ties share a rank (1, 2, 2, 4) in both stores; player id breaks a tie only for paging. [design](docs/design.md#why-the-manager-sorts-and-the-store-does-not)
 - The manager refuses a non-finite value and an undefined board, and nothing else. [design](docs/design.md#why-the-manager-sorts-and-the-store-does-not)
 - `running_total` boards are written by `replace_async` and reported with `overwrite: true`. [design](docs/design.md#running-totals)
-- The SQL driver is untyped; tables are GameSpice SQL specs; no column named `value`, `rank` or `key`; counters are added in the database. [storage](docs/storage.md#sql-storage-through-dot-sql)
+- The SQL driver is untyped; tables are GameSpice SQL specs; no column named `value`, `rank` or `key`; counters are added in the database. [storage](docs/storage.md#sql-storage-through-gs-sql)
 - SQL ranks are counted at read time, never rewritten per write. [storage](docs/storage.md#ranks-in-sql)
 - Plain `submit`/`page`/`entry_for` are synchronous and refuse a suspending store; `_async` forms work with every store. [storage](docs/storage.md#why-there-are-_async-forms)
 - The reporter batches, removes a batch only after success, and drops the oldest when full. [backbone](docs/backbone.md#three-properties-each-a-failure-avoided)

@@ -16,7 +16,7 @@ A board orders one number per player within a scope you choose, such as map, tra
 
 ## Install
 
-Copy `addons/dot_leaderboard/` and [GameSpice Core](https://github.com/gamespice-platform/core)'s `addons/dot_core/` into your project and enable dot-leaderboard in **Project > Project Settings > Plugins**. dot-auth, dot-timer, dot-server and dot-sql are optional and never named in the source.
+Copy `addons/gs_leaderboard/` and [GameSpice Core](https://github.com/gamespice-platform/core)'s `addons/gs_core/` into your project and enable gs-leaderboard in **Project > Project Settings > Plugins**. gs-auth, gs-timer, gs-server and gs-sql are optional and never named in the source.
 
 ## Use
 
@@ -57,7 +57,7 @@ await boards.publish_stat(&"most_jumps", {}, player_id, player_name, &"jumps")
 ### A database
 
 ```gdscript
-var store := GSLeaderboardStoreSql.new(driver)   # any dot-sql driver
+var store := GSLeaderboardStoreSql.new(driver)   # any gs-sql driver
 await store.open()                                # creates or migrates its two tables
 boards.store = store
 
@@ -65,20 +65,20 @@ await boards.submit_async(&"fastest", scope, player_id, player_name, run.time())
 var page := await boards.page_async(&"fastest", scope)
 ```
 
-Use the `_async` forms (`submit_async`, `page_async`, `entry_for_async`) with a database store. The plain forms refuse a store that has to wait. `add_stats`, `stats_for` and `publish_stat` are always awaited. Table names are the `entries_table` and `stats_table` settings (defaults `dot_leaderboard_entries` and `dot_leaderboard_stats`). Counters are added inside the database, so two servers sharing it do not lose each other's updates.
+Use the `_async` forms (`submit_async`, `page_async`, `entry_for_async`) with a database store. The plain forms refuse a store that has to wait. `add_stats`, `stats_for` and `publish_stat` are always awaited. Table names are the `entries_table` and `stats_table` settings (defaults `gs_leaderboard_entries` and `gs_leaderboard_stats`). Counters are added inside the database, so two servers sharing it do not lose each other's updates.
 
 ### Reporting to the website
 
 ```gdscript
 boards.report_to_backbone = true
-boards.reporter.client = backbone_client   # dot-auth's GSBackboneClient
+boards.reporter.client = backbone_client   # gs-auth's GSBackboneClient
 ```
 
 This needs the `LEADERBOARD_WRITE` scope on a server or app integration. Entries are queued and sent in batches, and the queue survives an outage.
 
 ## Board definitions file
 
-`tools/export_site_defs.gd` writes your boards as the website's `dot-leaderboard-defs` JSON, for the dashboard import or a deploy. Run it from the game project.
+`tools/export_site_defs.gd` writes your boards as the website's `gs-leaderboard-defs` JSON, for the dashboard import or a deploy. Run it from the game project.
 
 | Option | Meaning |
 | --- | --- |
@@ -100,8 +100,8 @@ A board is identified by `key` plus `scope`. Importing merges, and boards the fi
 godot --headless --path . --import
 godot --headless --path . res://examples/leaderboard_selftest.tscn
 
-# the SQL store against real SQLite, Postgres and MariaDB (dot-sql linked in addons/)
-../dot-sql/tools/test_live.sh . res://examples/leaderboard_sql_live.tscn
+# the SQL store against real SQLite, Postgres and MariaDB (gs-sql linked in addons/)
+../gs-sql/tools/test_live.sh . res://examples/leaderboard_sql_live.tscn
 ```
 
 ## Licence

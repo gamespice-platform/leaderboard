@@ -2,15 +2,15 @@
 .godot/
 /android/
 
-# Every other dot-* addon is a separate repository. For local development they are
+# Every other gs-* addon is a separate repository. For local development they are
 # symlinked; a consumer copies the ones it wants instead:
-#   ln -s ../../dot-core/addons/dot_core addons/dot_core
+#   ln -s ../../gs-core/addons/gs_core addons/gs_core
 #
 # These links must stay ignored. A committed symlink is checked out as a text
 # FILE by Git on Windows without Developer Mode, so Godot finds a 30-byte file
 # where an addon should be and every class_name in it fails to resolve.
-/addons/dot_core
-/addons/dot_auth
+/addons/gs_core
+/addons/gs_auth
 
 # Exports
 build/
@@ -23,10 +23,10 @@ Thumbs.db
 # Editors
 .vscode/
 
-# dot-sql: the suites drive the SQL store with its drivers. The addon itself reaches a
+# gs-sql: the suites drive the SQL store with its drivers. The addon itself reaches a
 # driver duck-typed and does not need it.
-/addons/dot_sql
-/addons/dot_cloud
-/addons/dot_moderation
-/addons/dot_server
-/addons/dot_voice
+/addons/gs_sql
+/addons/gs_cloud
+/addons/gs_moderation
+/addons/gs_server
+/addons/gs_voice

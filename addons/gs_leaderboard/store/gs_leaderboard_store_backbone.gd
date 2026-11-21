@@ -217,7 +217,7 @@ func _need_client() -> GSResult:
 		return null
 	return GSResult.fail(
 		GSError.CODE_STATE, "No backbone client; the leaderboard store is off.",
-		"assign GSLeaderboardStoreBackbone.client from dot-auth's GSBackboneClient"
+		"assign GSLeaderboardStoreBackbone.client from gs-auth's GSBackboneClient"
 	)
 
 

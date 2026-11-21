@@ -1,7 +1,7 @@
 extends Node
 
 ## The backbone store against a fake website-city in this process, through the real
-## dot-auth GSBackboneClient (so GSHttp and the HTTPRequest path are exercised).
+## gs-auth GSBackboneClient (so GSHttp and the HTTPRequest path are exercised).
 ## Run: godot --headless --path . res://examples/leaderboard_backbone_test.tscn
 
 const CHECKS := 56
@@ -54,7 +54,7 @@ func _pump() -> void:
 
 
 func _run() -> void:
-	print("dot-leaderboard backbone store test")
+	print("gs-leaderboard backbone store test")
 	if _server.listen(PORT, "127.0.0.1") != OK:
 		print("ERROR: cannot listen on %d" % PORT)
 		get_tree().quit(1)

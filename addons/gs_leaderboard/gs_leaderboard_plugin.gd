@@ -6,13 +6,13 @@ extends EditorPlugin
 ## No autoloads. A server that hosts two game modes in one process holds two sets of
 ## boards, and a test holds one per case.
 
-const _ICON := "res://addons/dot_leaderboard/icon_placeholder.svg"
+const _ICON := "res://addons/gs_leaderboard/icon_placeholder.svg"
 
 const _TYPES := [
 	[
 		"GSLeaderboardManager",
 		"Node",
-		"res://addons/dot_leaderboard/runtime/dot_leaderboard_manager.gd",
+		"res://addons/gs_leaderboard/runtime/gs_leaderboard_manager.gd",
 	],
 ]
 

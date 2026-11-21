@@ -27,7 +27,7 @@ func _ready() -> void:
 
 
 func _run() -> void:
-	print("dot-leaderboard self-test")
+	print("gs-leaderboard self-test")
 	print("")
 
 	_test_definitions()
@@ -84,7 +84,7 @@ func _test_definitions() -> void:
 	_check(board.decimals == 3, "and defaults to three decimals")
 	var site := GSLeaderboardDef.to_site_defs([board])
 	var row: Dictionary = (site["boards"] as Array)[0]
-	_check(site["format"] == "dot-leaderboard-defs" and not site.has("game"), "the site document names its format and leaves the app id out")
+	_check(site["format"] == "gs-leaderboard-defs" and not site.has("game"), "the site document names its format and leaves the app id out")
 	_check(row["key"] == "fastest" and row["kind"] == "TIME" and row["scope"] == {"map": "surf_beginner"}, "an exported board carries key, kind name and scope")
 	_check(row["name"] == "fastest", "a board without a name is labelled by its id")
 
@@ -627,7 +627,7 @@ func _test_boards_config() -> void:
 	config.backend = "carrier-pigeon"
 	_check(not config.validate().ok, "an unknown backend is refused")
 
-	var path := "user://dot_boards_config_selftest.json"
+	var path := "user://gs_boards_config_selftest.json"
 	var file := FileAccess.open(path, FileAccess.WRITE)
 	file.store_string('{"backend": "backbone"}')
 	file.close()

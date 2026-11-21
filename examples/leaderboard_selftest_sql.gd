@@ -63,17 +63,17 @@ func _test_sql_store() -> void:
 	var opened: GSResult = await store.open()
 	_check(opened.ok, "the store opens and creates its schema", str(opened.error))
 	_check(
-		driver.matching("CREATE TABLE IF NOT EXISTS dot_leaderboard_entries").size() == 1
-			and driver.matching("CREATE TABLE IF NOT EXISTS dot_leaderboard_stats").size() == 1,
+		driver.matching("CREATE TABLE IF NOT EXISTS gs_leaderboard_entries").size() == 1
+			and driver.matching("CREATE TABLE IF NOT EXISTS gs_leaderboard_stats").size() == 1,
 		"both tables are created"
 	)
 	_check(
-		driver.matching("CREATE INDEX IF NOT EXISTS dot_leaderboard_entries_order_idx").size() == 1,
+		driver.matching("CREATE INDEX IF NOT EXISTS gs_leaderboard_entries_order_idx").size() == 1,
 		"with the (board_key, score) index a page and a rank both read"
 	)
-	var recorded := driver.matching("INSERT INTO dot_sql_migrations")
+	var recorded := driver.matching("INSERT INTO gs_sql_migrations")
 	_check(
-		recorded.size() == 1 and (recorded[0]["params"] as Array)[0] == "dot_leaderboard:dot_leaderboard_entries",
+		recorded.size() == 1 and (recorded[0]["params"] as Array)[0] == "gs_leaderboard:gs_leaderboard_entries",
 		"and its schema version recorded under its own component"
 	)
 
@@ -106,7 +106,7 @@ func _sql_writes(driver: GSSqlDriverRecording, store: GSLeaderboardStoreSql, boa
 	_check(
 		driver.statements.size() == 2
 			and str(driver.statements[0]["sql"]).begins_with("SELECT")
-			and str(driver.statements[1]["sql"]).begins_with("INSERT INTO dot_leaderboard_entries"),
+			and str(driver.statements[1]["sql"]).begins_with("INSERT INTO gs_leaderboard_entries"),
 		"read the previous entry, then write: two statements, in that order"
 	)
 	if driver.statements.size() == 2:
@@ -191,9 +191,9 @@ func _sql_counters(driver: GSSqlDriverRecording, store: GSLeaderboardStoreSql, b
 	set.add(&"kills", 3.0)
 	set.add(&"metres", 20.5)
 	var totals: GSResult = await store.add_stats(&"p1", set)
-	var adds := driver.matching("INSERT INTO dot_leaderboard_stats")
+	var adds := driver.matching("INSERT INTO gs_leaderboard_stats")
 	_check(
-		adds.size() == 2 and str(adds[0]["sql"]).contains("amount = dot_leaderboard_stats.amount + excluded.amount"),
+		adds.size() == 2 and str(adds[0]["sql"]).contains("amount = gs_leaderboard_stats.amount + excluded.amount"),
 		"a counter is added by the database, one statement each, not read and rewritten here"
 	)
 	_check(
@@ -207,7 +207,7 @@ func _sql_counters(driver: GSSqlDriverRecording, store: GSLeaderboardStoreSql, b
 	await mysql_store.open()
 	mysql.clear()
 	await mysql_store.add_stats(&"p1", set)
-	var mysql_adds := mysql.matching("INSERT INTO dot_leaderboard_stats")
+	var mysql_adds := mysql.matching("INSERT INTO gs_leaderboard_stats")
 	_check(
 		mysql_adds.size() == 2 and str(mysql_adds[0]["sql"]).contains("ON DUPLICATE KEY UPDATE amount = amount + VALUES(amount)"),
 		"and spelled MySQL's way on MySQL, which has no ON CONFLICT"
@@ -235,7 +235,7 @@ func _sql_failures(driver: GSSqlDriverRecording, store: GSLeaderboardStoreSql, b
 	flaky.answers = {"SELECT version FROM": []}
 	var flaky_store := GSLeaderboardStoreSql.new(flaky)
 	await flaky_store.open()
-	flaky.fail_on = "INSERT INTO dot_leaderboard_entries"
+	flaky.fail_on = "INSERT INTO gs_leaderboard_entries"
 	var failed_put: GSResult = await flaky_store.put(entry)
 	_check(not failed_put.ok, "a write failure is reported, not swallowed")
 
@@ -243,7 +243,7 @@ func _sql_failures(driver: GSSqlDriverRecording, store: GSLeaderboardStoreSql, b
 	newer.answers = {"SELECT version FROM": [{"version": 99}]}
 	var refused: GSResult = await GSLeaderboardStoreSql.new(newer).open()
 	_check(
-		not refused.ok and newer.matching("CREATE TABLE IF NOT EXISTS dot_leaderboard_entries").is_empty(),
+		not refused.ok and newer.matching("CREATE TABLE IF NOT EXISTS gs_leaderboard_entries").is_empty(),
 		"a database from a newer build is refused, and nothing is created in it"
 	)
 
@@ -271,7 +271,7 @@ func _sql_manager(driver: GSSqlDriverRecording, store: GSLeaderboardStoreSql, bo
 	var filed: GSResult = await manager.submit_async(&"fastest", {"map": "surf_a"}, &"p1", "P", 9.0)
 	_check(
 		filed.ok and filed.value is GSLeaderboardEntry and (filed.value as GSLeaderboardEntry).value == 9.0
-			and driver.matching("INSERT INTO dot_leaderboard_entries").size() == 1,
+			and driver.matching("INSERT INTO gs_leaderboard_entries").size() == 1,
 		"submit_async files an improvement through the SQL store",
 		str(filed.error)
 	)
