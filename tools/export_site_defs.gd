@@ -1,8 +1,7 @@
 extends SceneTree
 
 ## Writes a game's boards as the site's `gs-leaderboard-defs` JSON. Run inside the game project:
-##   godot --headless --path . --script ../gs-leaderboard/tools/export_site_defs.gd -- \
-##     --source res://game/x_boards.gd --method boards --out deployment/leaderboard-defs.json [--check] [--game 12]
+##   godot --headless --path . --script ../gs-leaderboard/tools/export_site_defs.gd -- --source res://game/x_boards.gd --method boards --out deployment/leaderboard-defs.json [--check] [--game 12]
 ## --check writes nothing and exits 1 if the file on disk differs.
 
 func _init() -> void:
