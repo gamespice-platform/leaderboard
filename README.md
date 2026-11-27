@@ -2,7 +2,7 @@
 
 Leaderboards and player statistics for any Godot game, plus the path from a game server to the TMC website's leaderboards.
 
-Part of the [**GameSpice**](https://gamespice.net) collection: modular, MIT-licensed building blocks for games on the GameSpice platform (only the TMC website back end is closed). It was built with Claude Code and its headless suite passes, but little of it has met real players yet, so expect rough edges and please report what you find.
+gs-leaderboard is a [GameSpice](https://gamespice.net) addon, MIT licensed, built with Claude Code and tested by a headless suite (`examples/leaderboard_selftest.tscn`). The games in [Zee's Games](https://zeesgames.com) are built on the GameSpice addons and run on live servers, and several of them post their boards through this one.
 
 ## What you get
 
@@ -103,6 +103,18 @@ godot --headless --path . res://examples/leaderboard_selftest.tscn
 # the SQL store against real SQLite, Postgres and MariaDB (gs-sql linked in addons/)
 ../gs-sql/tools/test_live.sh . res://examples/leaderboard_sql_live.tscn
 ```
+
+## Used by
+
+These games vendor it:
+
+- [Fatal Contact](https://zeesgames.com/fatal-contact) - defines and submits its boards
+- [Airdrift](https://zeesgames.com/airdrift) - run times per map, track and style
+- [Playlot](https://zeesgames.com/playlot) - submits entries to its boards
+- [Hungario](https://zeesgames.com/hungario) - defines and submits its boards
+- [Zombie Zone](https://zeesgames.com/zombie-zone)
+
+The whole collection is at [zeesgames.com](https://zeesgames.com).
 
 ## Licence
 
